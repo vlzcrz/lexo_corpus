@@ -4,9 +4,9 @@ use lexo_corpus::modules::{
     file_handlers::read_document_pdf,
     lexical_analisis::{analyzer_content, initializer_word_hashmap_handler},
     linear_regression::linear_regression_x1,
+    plot_handlers::{scatter_plot, to_tuples},
     zipfs_handlers::{apply_to_log10, get_zipf_law_results},
 };
-use pdf_extract::content;
 
 fn main() {
     // Directorio donde se encuentran los pdf
@@ -79,17 +79,26 @@ fn main() {
         analyzer_content(content, &mut words, &ascii_interest).unwrap();
 
     let (mut keys, mut values) = initializer_word_hashmap_handler(&words).unwrap();
-    get_zipf_law_results(&mut keys, &mut values);
+    if keys.is_empty() && values.is_empty() {
+        return;
+    }
 
+    get_zipf_law_results(&mut keys, &mut values);
     let (log_ranking, log_values) = apply_to_log10(values).unwrap();
 
     let parameters = linear_regression_x1(&log_values, &log_ranking).unwrap();
+
+    let tuple_to_plot = to_tuples(log_ranking, log_values).unwrap();
 
     // [DEBUG]
     println!("{:?}", keys);
     println!("{:?}", words);
     println!("{:?}", inter_words_strings);
     println!("{:?}", inter_words_hashmaps);
-    println!("{:?}", log_values);
     println!("{:?}", parameters);
+    println!("{:?}", tuple_to_plot);
+
+    file_path_input = format!("{}", file_path_input.trim());
+    let (file_name, _) = file_path_input.split_once(".").unwrap();
+    scatter_plot(tuple_to_plot, file_name).unwrap();
 }

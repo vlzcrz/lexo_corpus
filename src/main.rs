@@ -100,5 +100,5 @@ fn main() {
 
     file_path_input = format!("{}", file_path_input.trim());
     let (file_name, _) = file_path_input.split_once(".").unwrap();
-    scatter_plot(tuple_to_plot, file_name).unwrap();
+    scatter_plot(tuple_to_plot, file_name, &parameters).unwrap();
 }

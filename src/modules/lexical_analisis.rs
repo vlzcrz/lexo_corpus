@@ -1,4 +1,7 @@
-use std::io::{self, Error};
+use std::{
+    collections::HashMap,
+    io::{self, Error},
+};
 
 // Funcion para verificar que es una letra que pertenece a nuestro rango ASCII de interes (32-126)
 pub fn is_ascii_valid(word: &str, ascii_interest: &Vec<u8>) -> Result<bool, Error> {
@@ -26,4 +29,67 @@ pub fn input_inter_words() -> Result<Vec<String>, Error> {
         }
     }
     Ok(inter_words)
+}
+
+pub fn analyzer_content(
+    content: String,
+    words: &mut HashMap<String, u32>,
+    ascii_interest: &Vec<u8>,
+) -> Result<(Vec<HashMap<u64, u32>>, Vec<String>), Error> {
+    let inter_words_strings: Vec<String> = input_inter_words()?;
+    let mut last_positions: Vec<u64> = Vec::new();
+    let mut inter_words_hashmaps: Vec<HashMap<u64, u32>> = Vec::new();
+    let mut count_strings = 0;
+    while count_strings < inter_words_strings.len() {
+        let inter_words: HashMap<u64, u32> = HashMap::new();
+        last_positions.push(0);
+        inter_words_hashmaps.push(inter_words);
+        count_strings += 1
+    }
+
+    for (index, word) in content.split_whitespace().enumerate() {
+        if is_ascii_valid(word, ascii_interest)? {
+            let count = words.entry(word.to_string()).or_insert(0);
+            *count += 1;
+
+            for (index_input_strings, inter_word_string) in inter_words_strings.iter().enumerate() {
+                if word == inter_word_string {
+                    if inter_words_hashmaps[index_input_strings].is_empty() {
+                        inter_words_hashmaps[index_input_strings]
+                            .entry(0)
+                            .or_insert(0);
+
+                        last_positions[index_input_strings] = index as u64;
+                        continue;
+                    }
+                    let token_distance = index as u64 - 1 - last_positions[index_input_strings];
+                    let count_distance = inter_words_hashmaps[index_input_strings]
+                        .entry(token_distance)
+                        .or_insert(0);
+                    *count_distance += 1;
+
+                    last_positions[index_input_strings] = index as u64;
+                }
+            }
+        }
+    }
+
+    for hashmap in inter_words_hashmaps.iter_mut() {
+        hashmap.remove(&0);
+    }
+
+    Ok((inter_words_hashmaps, inter_words_strings))
+}
+
+pub fn initializer_word_hashmap_handler(
+    words: &HashMap<String, u32>,
+) -> Result<(Vec<String>, Vec<u32>), Error> {
+    let mut keys: Vec<String> = Vec::new();
+    let mut values: Vec<u32> = Vec::new();
+    for (key, value) in words {
+        keys.push(key.to_string());
+        values.push(*value);
+    }
+
+    Ok((keys, values))
 }

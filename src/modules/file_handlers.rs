@@ -1,12 +1,21 @@
-use std::{
-    fs::File,
-    io::{Error, Read},
-};
+use std::{fs::File, io::Read};
+
+use pdf_extract::{Error, OutputError};
 
 // una función que permita leer el documento pdf
-pub fn read_document_pdf(path: &str) -> Result<String, Error> {
-    let bytes = std::fs::read(path).unwrap();
-    let content = pdf_extract::extract_text_from_mem(&bytes).unwrap();
+pub fn read_document_pdf(path: &str) -> Result<String, OutputError> {
+    let bytes = std::fs::read(path).map_err(|er| {
+        eprintln!("Error al leer el documeto pdf, asegurese de que el nombre del archivo coincida con el valor ingresado. Error: {}", er);
+        er
+    })?;
+    let content = pdf_extract::extract_text_from_mem(&bytes).map_err(|er| {
+        eprintln!(
+            "Error al extraer el contenido del pdf, pdf no compatible. Error: {}",
+            er
+        );
+        er
+    })?;
+
     Ok(content)
 }
 

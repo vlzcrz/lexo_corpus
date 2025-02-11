@@ -1,7 +1,7 @@
 use std::{collections::HashMap, io};
 
 use lexo_corpus::modules::{
-    file_handlers::read_document_pdf,
+    file_handlers::{create_csv_ordered, read_document_pdf},
     lexical_analisis::{analyzer_content, initializer_word_hashmap_handler},
     linear_regression::linear_regression_x1,
     plot_handlers::{scatter_plot, to_tuples},
@@ -72,7 +72,8 @@ fn main() {
             }
         };
     }
-
+    file_path_input = format!("{}", file_path_input.trim());
+    let (file_name, _) = file_path_input.split_once(".").unwrap();
     // TODO: personalizar el error para evitar el uso de unwrap() en caso de fallo.
 
     let (inter_words_hashmaps, inter_words_strings) =
@@ -84,6 +85,7 @@ fn main() {
     }
 
     get_zipf_law_results(&mut keys, &mut values);
+    create_csv_ordered(&keys, &values, file_name);
     let (log_ranking, log_values) = apply_to_log10(values).unwrap();
 
     let parameters = linear_regression_x1(&log_values, &log_ranking).unwrap();
@@ -98,7 +100,5 @@ fn main() {
     println!("{:?}", parameters);
     println!("{:?}", tuple_to_plot);
 
-    file_path_input = format!("{}", file_path_input.trim());
-    let (file_name, _) = file_path_input.split_once(".").unwrap();
     scatter_plot(tuple_to_plot, file_name, &parameters).unwrap();
 }

@@ -93,12 +93,11 @@ fn main() {
     let tuple_to_plot = to_tuples(log_ranking, log_values).unwrap();
 
     // [DEBUG]
-    println!("{:?}", keys);
-    println!("{:?}", words);
-    println!("{:?}", inter_words_strings);
-    println!("{:?}", inter_words_hashmaps);
+    //println!("{:?}", keys);
+    //println!("{:?}", words);
+    //println!("{:?}", inter_words_strings);
+    //println!("{:?}", inter_words_hashmaps);
     println!("{:?}", parameters);
-    println!("{:?}", tuple_to_plot);
 
     scatter_plot(tuple_to_plot, file_name, &parameters).unwrap();
 }

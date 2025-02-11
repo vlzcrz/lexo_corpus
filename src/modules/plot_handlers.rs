@@ -32,12 +32,11 @@ pub fn scatter_plot(
     root.fill(&WHITE).unwrap();
     let root = root.margin(5, 5, 5, 5);
 
-    println!("{:?}", tuple);
     let mut chart = ChartBuilder::on(&root)
         .caption(plot_title, ("sans-serif", 28))
         .x_label_area_size(50)
         .y_label_area_size(60)
-        .build_cartesian_2d(0f64..*x_limit_last + 0.05, 0f64..*y_limit_first)
+        .build_cartesian_2d(xFirst..xLast, 0f64..*y_limit_first)
         .unwrap();
 
     chart

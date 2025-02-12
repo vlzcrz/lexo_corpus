@@ -1,10 +1,11 @@
 use std::{
     collections::HashMap,
-    fs::File,
-    io::{stdout, Read},
+    ffi::OsStr,
+    fs::{self, File},
+    io::{stdout, Error, Read},
 };
 
-use pdf_extract::{Error, OutputError};
+use pdf_extract::OutputError;
 use pyo3::{ffi::c_str, prelude::*};
 
 // una función que permita leer el documento pdf
@@ -97,4 +98,18 @@ pub fn division_pdf(file_name: &str) -> Result<bool, Error> {
     });
 
     Ok(call_result)
+}
+
+pub fn get_files_from_folder() -> Result<Vec<(String, String)>, Error> {
+    let paths = fs::read_dir("./books-pdf/").unwrap();
+    let mut files_and_extensions_tuple: Vec<(String, String)> = Vec::new();
+    for path in paths {
+        let file = path.unwrap().path();
+        let file_trim = file.strip_prefix("./books-pdf/").unwrap();
+        let file_name = file_trim.file_stem().and_then(OsStr::to_str).unwrap();
+        let file_extension = file_trim.extension().and_then(OsStr::to_str).unwrap();
+        files_and_extensions_tuple.push((file_name.to_string(), file_extension.to_string()));
+    }
+
+    Ok(files_and_extensions_tuple)
 }

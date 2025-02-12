@@ -2,7 +2,7 @@ pub mod modules;
 use std::{collections::HashMap, io};
 
 use modules::{
-    file_handlers::{create_csv_ordered, division_pdf, read_document_pdf},
+    file_handlers::{create_csv_ordered, division_pdf, get_files_from_folder, read_document_pdf},
     lexical_analisis::{analyzer_content, initializer_word_hashmap_handler},
     linear_regression::linear_regression_x1,
     plot_handlers::{scatter_plot, to_tuples},
@@ -22,6 +22,9 @@ fn main() {
     // HashMap para guardar las palabras encontradas dentro del texto junto con su cantidad de repeticiones
     let mut words: HashMap<String, u32> = HashMap::new();
 
+    let file_names_extension_vector = get_files_from_folder();
+    println!("{:?}", file_names_extension_vector);
+
     println!(
         "Ingresa el nombre del archivo con su extension .txt ó .pdf (Presione '0' para cancelar)"
     );
@@ -40,7 +43,8 @@ fn main() {
         }
         Err(_) => {
             if file_path_input.trim() == "0" {
-                did_read = true
+                return;
+                did_read = true;
             }
 
             file_path_input = String::new();
@@ -101,6 +105,4 @@ fn main() {
     println!("{:?}", parameters);
 
     scatter_plot(tuple_to_plot, file_name, &parameters).unwrap();
-    let test = division_pdf(file_name).unwrap();
-    println!("{:?}", test);
 }

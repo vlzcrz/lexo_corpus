@@ -16,16 +16,15 @@ pub fn scatter_plot(
     let plot_path = format!("books-plot/{}.{}", file_name, image_extension);
     let plot_title = format!("Zipf's Law (Log) - File: {}", file_name);
 
-    let (x_limit_last, _) = &tuple[tuple.len() - 1];
-    let (x_last, y_limit_first) = &tuple[0];
+    let (_, y_limit_first) = &tuple[0];
     // Linear Regression alpha y beta
     let beta = &lr_parameters[0];
     let alpha = &lr_parameters[1];
-    let xFirst = (*y_limit_first - beta) / alpha;
-    let xLast = (0f64 - beta) / alpha;
+    let x_first = (*y_limit_first - beta) / alpha;
+    let x_last = (0f64 - beta) / alpha;
     // Linear Regression points
-    let polyfit_point_one = (xFirst, *y_limit_first);
-    let polyfit_point_two = (xLast, 0f64);
+    let polyfit_point_one = (x_first, *y_limit_first);
+    let polyfit_point_two = (x_last, 0f64);
     println!("{:?} | {:?}", polyfit_point_one, polyfit_point_two);
 
     let root = BitMapBackend::new(&plot_path, (960, 720)).into_drawing_area();
@@ -36,7 +35,7 @@ pub fn scatter_plot(
         .caption(plot_title, ("sans-serif", 28))
         .x_label_area_size(50)
         .y_label_area_size(60)
-        .build_cartesian_2d(xFirst..xLast, 0f64..*y_limit_first)
+        .build_cartesian_2d(x_first..x_last, 0f64..*y_limit_first)
         .unwrap();
 
     chart

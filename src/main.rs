@@ -1,7 +1,8 @@
+pub mod modules;
 use std::{collections::HashMap, io};
 
-use lexo_corpus::modules::{
-    file_handlers::{create_csv_ordered, read_document_pdf},
+use modules::{
+    file_handlers::{create_csv_ordered, division_pdf, read_document_pdf},
     lexical_analisis::{analyzer_content, initializer_word_hashmap_handler},
     linear_regression::linear_regression_x1,
     plot_handlers::{scatter_plot, to_tuples},
@@ -76,7 +77,7 @@ fn main() {
     let (file_name, _) = file_path_input.split_once(".").unwrap();
     // TODO: personalizar el error para evitar el uso de unwrap() en caso de fallo.
 
-    let (inter_words_hashmaps, inter_words_strings) =
+    let (_inter_words_hashmaps, _inter_words_strings) =
         analyzer_content(content, &mut words, &ascii_interest).unwrap();
 
     let (mut keys, mut values) = initializer_word_hashmap_handler(&words).unwrap();
@@ -100,4 +101,6 @@ fn main() {
     println!("{:?}", parameters);
 
     scatter_plot(tuple_to_plot, file_name, &parameters).unwrap();
+    let test = division_pdf(file_name).unwrap();
+    println!("{:?}", test);
 }

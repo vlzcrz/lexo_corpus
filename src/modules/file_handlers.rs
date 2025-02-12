@@ -5,6 +5,7 @@ use std::{
 };
 
 use pdf_extract::{Error, OutputError};
+use pyo3::{ffi::c_str, prelude::*};
 
 // una función que permita leer el documento pdf
 pub fn read_document_pdf(path: &str) -> Result<String, OutputError> {
@@ -63,4 +64,37 @@ pub fn create_csv_ordered(keys: &Vec<String>, values: &Vec<u32>, file_path: &str
             .unwrap();
     }
     word_list_n50.flush().unwrap();
+}
+
+pub fn division_pdf(file_name: &str) -> Result<bool, Error> {
+    let file_path = format!("books-pdf/{}.pdf", file_name);
+    let code = c_str!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/python/utils/pdf_handler.py"
+    )));
+
+    let call_result = Python::with_gil(|py| {
+        let module =
+            PyModule::from_code(py, code, c_str!("pdf_handler"), c_str!("pdf_handler")).unwrap();
+        let function = module.getattr("split_pdf").unwrap();
+
+        // Nombre del archivo PDF de entrada
+        //let input_pdf = "books-pdf/tallerads.pdf";
+
+        // Llamar a la función split_pdf en Python
+        let result = function.call1((file_path,));
+
+        match result {
+            Ok(_) => {
+                println!("Division PDF exitosa");
+                return true;
+            }
+            Err(err) => {
+                println!("Error al dividir PDF: {:?}", err);
+                return false;
+            }
+        }
+    });
+
+    Ok(call_result)
 }

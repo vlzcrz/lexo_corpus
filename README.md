@@ -16,6 +16,8 @@ inside the created env install listed depedencies
 
 ---
 
+rename library to tetlib and paste inside ./python/ folder's project. Rust auto insert library path so the venv allows to use it.
+
 to run the program, you must be inside the env and do
 
 cargo run

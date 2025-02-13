@@ -113,3 +113,36 @@ pub fn get_files_from_folder() -> Result<Vec<(String, String)>, Error> {
 
     Ok(files_and_extensions_tuple)
 }
+
+pub fn read_tet_document_pdf(file_name: &str) -> Result<String, Error> {
+    let file_path = format!("./books-fracts/{}.pdf", file_name);
+
+    let code = c_str!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/python/utils/pdf_handler.py"
+    )));
+
+    let call_result = Python::with_gil(|py| {
+        let relative_library_path = "./python/tetlib/bind/python";
+        let os = py.import("os").unwrap();
+        let os_path = os.getattr("path").unwrap();
+        let abs_library_path = os_path
+            .call_method1("abspath", (relative_library_path,))
+            .unwrap();
+        let sys = py.import("sys").unwrap();
+        let sys_path = sys.getattr("path").unwrap();
+
+        sys_path
+            .call_method1("insert", (0, abs_library_path))
+            .unwrap();
+
+        let module = PyModule::from_code(py, code, c_str!("pdf_handler"), c_str!("TET")).unwrap();
+        let function = module.getattr("open_and_read_pdf").unwrap();
+
+        let result = function.call1((file_path,)).unwrap();
+        let text: String = result.extract().unwrap();
+        return text;
+    });
+
+    Ok(call_result)
+}

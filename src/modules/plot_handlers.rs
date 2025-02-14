@@ -25,7 +25,7 @@ pub fn scatter_plot(
     // Linear Regression points
     let polyfit_point_one = (x_first, *y_limit_first);
     let polyfit_point_two = (x_last, 0f64);
-    // println!("{:?} | {:?}", polyfit_point_one, polyfit_point_two);
+    println!("{:?} | {:?}", polyfit_point_one, polyfit_point_two);
 
     let root = BitMapBackend::new(&plot_path, (960, 720)).into_drawing_area();
     root.fill(&WHITE).unwrap();

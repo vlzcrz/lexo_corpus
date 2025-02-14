@@ -105,10 +105,9 @@ fn main() {
     get_zipf_law_results(&mut keys, &mut values);
     create_csv_ordered(&keys, &values, file_name);
     let (log_ranking, log_values) = apply_to_log10(values).unwrap();
-
     let parameters = linear_regression_x1(&log_values, &log_ranking).unwrap();
-
     let tuple_to_plot = to_tuples(log_ranking, log_values).unwrap();
+    scatter_plot(tuple_to_plot, file_name, &parameters).unwrap();
 
     // [DEBUG]
     //println!("{:?}", keys);
@@ -116,6 +115,4 @@ fn main() {
     //println!("{:?}", inter_words_strings);
     //println!("{:?}", inter_words_hashmaps);
     println!("{:?}", parameters);
-
-    scatter_plot(tuple_to_plot, file_name, &parameters).unwrap();
 }

@@ -5,7 +5,13 @@ use crate::modules::{
     lexical_analisis::create_inter_words,
 };
 
-use super::lexical_analisis::{analyzer_content, initializer_word_hashmap_handler};
+use super::{
+    file_handlers::create_csv_ordered,
+    lexical_analisis::{analyzer_content, initializer_word_hashmap_handler},
+    linear_regression::linear_regression_x1,
+    plot_handlers::{scatter_plot, to_tuples},
+    zipfs_handlers::{apply_to_log10, get_zipf_law_results},
+};
 
 pub fn option_one() {
     // Directorio donde se encuentran los pdf
@@ -25,6 +31,8 @@ pub fn option_one() {
         create_inter_words().unwrap();
 
     let mut content = String::new();
+    let mut file_name = String::new();
+    let mut file_extension = String::new();
 
     while !did_read {
         println!("Ingresa el nombre del archivo con su extension .txt ó .pdf (Presione '0' para cancelar)");
@@ -37,14 +45,10 @@ pub fn option_one() {
             return;
         }
 
-        file_path_input = format!("books-pdf/{}", file_path_input.trim());
-        let (name_f, extension_f) = file_path_input
-            .strip_prefix("books-pdf/")
-            .unwrap()
-            .split_once(".")
-            .unwrap();
-        println!("name_f: {} extension_f:{}", name_f, extension_f);
-        content = match document_extract_content(name_f, extension_f) {
+        let (name_f, extension_f) = file_path_input.split_once(".").unwrap();
+        file_name = name_f.to_string();
+        file_extension = extension_f.to_string();
+        content = match document_extract_content(&file_name, &file_extension) {
             Ok(content) => {
                 did_read = true;
                 content
@@ -58,8 +62,6 @@ pub fn option_one() {
         };
     }
 
-    println!("{}", content);
-
     analyzer_content(
         content,
         &mut words,
@@ -72,4 +74,11 @@ pub fn option_one() {
     if keys.is_empty() && values.is_empty() {
         return;
     }
+
+    get_zipf_law_results(&mut keys, &mut values);
+    create_csv_ordered(&keys, &values, &file_name);
+    let (log_ranking, log_values) = apply_to_log10(values).unwrap();
+    let parameters = linear_regression_x1(&log_values, &log_ranking).unwrap();
+    let tuple_to_plot = to_tuples(log_ranking, log_values).unwrap();
+    scatter_plot(tuple_to_plot, &file_name, &parameters).unwrap();
 }

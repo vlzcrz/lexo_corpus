@@ -71,12 +71,12 @@ pub fn division_pdf(file_name: &str) -> Result<bool, Error> {
     let file_path = format!("books-pdf/{}.pdf", file_name);
     let code = c_str!(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/python/utils/pdf_handler.py"
+        "/python/utils/file_handler.py"
     )));
 
     let call_result = Python::with_gil(|py| {
         let module =
-            PyModule::from_code(py, code, c_str!("pdf_handler"), c_str!("pdf_handler")).unwrap();
+            PyModule::from_code(py, code, c_str!("file_handler"), c_str!("file_handler")).unwrap();
         let function = module.getattr("split_pdf").unwrap();
 
         // Nombre del archivo PDF de entrada
@@ -113,7 +113,6 @@ pub fn get_files_from_folder(folder_name: &str) -> Result<Vec<(String, String)>,
     }
 
     files_and_extensions_tuple.sort_by(|a, b| a.0.cmp(&b.0));
-    println!("{:?}", files_and_extensions_tuple);
     Ok(files_and_extensions_tuple)
 }
 
@@ -152,7 +151,6 @@ pub fn read_tet_document_pdf(file_name: &str) -> Result<String, Error> {
 
 pub fn document_extract_content(file_name: &str, file_extension: &str) -> Result<String, Error> {
     let file_path = format!("books-pdf/{}.{}", file_name, file_extension);
-    println!("{}", file_path);
 
     if file_extension == "txt" {
         return read_document_txt(&file_path);
@@ -161,10 +159,7 @@ pub fn document_extract_content(file_name: &str, file_extension: &str) -> Result
     let content = read_document_pdf(file_name).unwrap_or_else(|_| {
         println!("Error al leer el PDF, intentando alternativa...");
 
-        if let Err(e) = division_pdf(file_name) {
-            println!("Error en division_pdf: {:?}", e);
-            return String::new();
-        }
+        division_pdf(file_name).unwrap();
 
         match get_files_from_folder("books-fracts") {
             Ok(filename_extension_tuples) => {

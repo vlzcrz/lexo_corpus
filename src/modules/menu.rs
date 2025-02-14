@@ -21,8 +21,6 @@ pub fn main_menu() {
             .read_line(&mut user_input)
             .expect("[DEBUG] Error imprevisto: CLI MENU ERROR menu.rs");
 
-        println!("{}", user_input);
-
         if user_input.trim() == "1" {
             option_one();
         }

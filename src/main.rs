@@ -6,13 +6,15 @@ use modules::{
         create_csv_ordered, division_pdf, get_files_from_folder, read_document_pdf,
         read_tet_document_pdf,
     },
-    lexical_analisis::{analyzer_content, initializer_word_hashmap_handler},
+    lexical_analisis::{analyzer_content, create_inter_words, initializer_word_hashmap_handler},
     linear_regression::linear_regression_x1,
+    menu::main_menu,
     plot_handlers::{scatter_plot, to_tuples},
     zipfs_handlers::{apply_to_log10, get_zipf_law_results},
 };
 
 fn main() {
+    main_menu();
     // Directorio donde se encuentran los pdf
     let base_path = String::from("books-pdf/");
     // Variable de salida para cuando se ingresa un pdf correcto
@@ -27,7 +29,7 @@ fn main() {
     // HashMap para guardar las palabras encontradas dentro del texto junto con su cantidad de repeticiones
     let mut words: HashMap<String, u32> = HashMap::new();
 
-    let file_names_extension_vector = get_files_from_folder();
+    let file_names_extension_vector = get_files_from_folder("books-pdf");
     println!("{:?}", file_names_extension_vector);
 
     println!(
@@ -51,12 +53,11 @@ fn main() {
                 return;
                 did_read = true;
             }
-
+            println!("error");
             file_path_input = String::new();
             String::new()
         }
     };
-
     while !did_read {
         println!("Ingresa el nombre del archivo con su extension .txt ó .pdf (Presione '0' para cancelar)");
         io::stdin()
@@ -83,11 +84,18 @@ fn main() {
         };
     }
     file_path_input = format!("{}", file_path_input.trim());
-    let (file_name, _) = file_path_input.split_once(".").unwrap();
+    let (file_name, file_extension) = file_path_input.split_once(".").unwrap();
     // TODO: personalizar el error para evitar el uso de unwrap() en caso de fallo.
-
-    let (_inter_words_hashmaps, _inter_words_strings) =
-        analyzer_content(content, &mut words, &ascii_interest).unwrap();
+    let (mut inter_words_hashmaps, mut last_positions, inter_words_strings) =
+        create_inter_words().unwrap();
+    analyzer_content(
+        content,
+        &mut words,
+        &ascii_interest,
+        &mut inter_words_hashmaps,
+        &mut last_positions,
+        &inter_words_strings,
+    );
 
     let (mut keys, mut values) = initializer_word_hashmap_handler(&words).unwrap();
     if keys.is_empty() && values.is_empty() {

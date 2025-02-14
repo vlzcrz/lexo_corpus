@@ -31,11 +31,7 @@ pub fn input_inter_words() -> Result<Vec<String>, Error> {
     Ok(inter_words)
 }
 
-pub fn analyzer_content(
-    content: String,
-    words: &mut HashMap<String, u32>,
-    ascii_interest: &Vec<u8>,
-) -> Result<(Vec<HashMap<u64, u32>>, Vec<String>), Error> {
+pub fn create_inter_words() -> Result<(Vec<HashMap<u64, u32>>, Vec<u64>, Vec<String>), Error> {
     let inter_words_strings: Vec<String> = input_inter_words()?;
     let mut last_positions: Vec<u64> = Vec::new();
     let mut inter_words_hashmaps: Vec<HashMap<u64, u32>> = Vec::new();
@@ -47,8 +43,19 @@ pub fn analyzer_content(
         count_strings += 1
     }
 
+    Ok((inter_words_hashmaps, last_positions, inter_words_strings))
+}
+
+pub fn analyzer_content(
+    content: String,
+    words: &mut HashMap<String, u32>,
+    ascii_interest: &Vec<u8>,
+    inter_words_hashmaps: &mut Vec<HashMap<u64, u32>>,
+    last_positions: &mut Vec<u64>,
+    inter_words_strings: &Vec<String>,
+) {
     for (index, word) in content.split_whitespace().enumerate() {
-        if is_ascii_valid(word, ascii_interest)? {
+        if is_ascii_valid(word, ascii_interest).unwrap() {
             let count = words.entry(word.to_string()).or_insert(0);
             *count += 1;
 
@@ -77,8 +84,6 @@ pub fn analyzer_content(
     for hashmap in inter_words_hashmaps.iter_mut() {
         hashmap.remove(&0);
     }
-
-    Ok((inter_words_hashmaps, inter_words_strings))
 }
 
 pub fn initializer_word_hashmap_handler(

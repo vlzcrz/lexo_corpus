@@ -100,17 +100,20 @@ pub fn division_pdf(file_name: &str) -> Result<bool, Error> {
     Ok(call_result)
 }
 
-pub fn get_files_from_folder() -> Result<Vec<(String, String)>, Error> {
-    let paths = fs::read_dir("./books-pdf/").unwrap();
+pub fn get_files_from_folder(folder_name: &str) -> Result<Vec<(String, String)>, Error> {
+    let folder_path = format!("./{}/", folder_name);
+    let paths = fs::read_dir(&folder_path).unwrap();
     let mut files_and_extensions_tuple: Vec<(String, String)> = Vec::new();
     for path in paths {
         let file = path.unwrap().path();
-        let file_trim = file.strip_prefix("./books-pdf/").unwrap();
+        let file_trim = file.strip_prefix(&folder_path).unwrap();
         let file_name = file_trim.file_stem().and_then(OsStr::to_str).unwrap();
         let file_extension = file_trim.extension().and_then(OsStr::to_str).unwrap();
         files_and_extensions_tuple.push((file_name.to_string(), file_extension.to_string()));
     }
 
+    files_and_extensions_tuple.sort_by(|a, b| a.0.cmp(&b.0));
+    println!("{:?}", files_and_extensions_tuple);
     Ok(files_and_extensions_tuple)
 }
 
@@ -122,7 +125,7 @@ pub fn read_tet_document_pdf(file_name: &str) -> Result<String, Error> {
         "/python/utils/pdf_handler.py"
     )));
 
-    let call_result = Python::with_gil(|py| {
+    let content = Python::with_gil(|py| {
         let relative_library_path = "./python/tetlib/bind/python";
         let os = py.import("os").unwrap();
         let os_path = os.getattr("path").unwrap();
@@ -144,5 +147,49 @@ pub fn read_tet_document_pdf(file_name: &str) -> Result<String, Error> {
         return text;
     });
 
-    Ok(call_result)
+    Ok(content)
+}
+
+pub fn document_extract_content(file_name: &str, file_extension: &str) -> Result<String, Error> {
+    let file_path = format!("books-pdf/{}.{}", file_name, file_extension);
+    println!("{}", file_path);
+
+    if file_extension == "txt" {
+        return read_document_txt(&file_path);
+    }
+
+    let content = read_document_pdf(file_name).unwrap_or_else(|_| {
+        println!("Error al leer el PDF, intentando alternativa...");
+
+        if let Err(e) = division_pdf(file_name) {
+            println!("Error en division_pdf: {:?}", e);
+            return String::new();
+        }
+
+        match get_files_from_folder("books-fracts") {
+            Ok(filename_extension_tuples) => {
+                let mut combined_content = String::new();
+                for (file, _) in filename_extension_tuples.iter() {
+                    if let Ok(content) = read_tet_document_pdf(file) {
+                        combined_content.push_str(&content);
+                        combined_content.push(' ');
+                    }
+                }
+                clean_folder("books-fracts");
+                combined_content
+            }
+            Err(e) => {
+                println!("Error en get_files_from_folder: {:?}", e);
+                String::new()
+            }
+        }
+    });
+
+    Ok(content)
+}
+
+pub fn clean_folder(folder_name: &str) {
+    let folder_path = format!("./{}/", folder_name);
+    fs::remove_dir_all(&folder_path).unwrap();
+    fs::create_dir(&folder_path).unwrap();
 }

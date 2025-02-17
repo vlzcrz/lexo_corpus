@@ -9,8 +9,9 @@ use pdf_extract::OutputError;
 use pyo3::{ffi::c_str, prelude::*};
 
 // una función que permita leer el documento pdf
-pub fn read_document_pdf(path: &str) -> Result<String, OutputError> {
-    let bytes = std::fs::read(path).map_err(|er| {
+pub fn read_document_pdf(file_name: &str) -> Result<String, OutputError> {
+    let file_path = format!("./books-pdf/{}.pdf", file_name);
+    let bytes = std::fs::read(file_path).map_err(|er| {
         eprintln!("Error al leer el documeto pdf, asegurese de que el nombre del archivo coincida con el valor ingresado. Error: {}", er);
         er
     })?;
@@ -65,6 +66,26 @@ pub fn create_csv_ordered(keys: &Vec<String>, values: &Vec<u32>, file_path: &str
             .unwrap();
     }
     word_list_n50.flush().unwrap();
+}
+
+pub fn create_csv_inter_words(
+    file_name: &str,
+    inter_words_hashmaps: &Vec<HashMap<u32, u32>>,
+    inter_words_strings: &Vec<String>,
+) {
+    for (index, inter_word_hashmap) in inter_words_hashmaps.iter().enumerate() {
+        let inter_word_path = format!(
+            "books-data/{}-interword-{}.csv",
+            file_name, inter_words_strings[index]
+        );
+        let mut inter_word_list = csv::Writer::from_path(inter_word_path).unwrap();
+        for (token_distance, frequency) in inter_word_hashmap.iter() {
+            inter_word_list
+                .write_record([token_distance.to_string(), frequency.to_string()])
+                .unwrap();
+        }
+        inter_word_list.flush().unwrap();
+    }
 }
 
 pub fn division_pdf(file_name: &str) -> Result<bool, Error> {
@@ -156,31 +177,45 @@ pub fn document_extract_content(file_name: &str, file_extension: &str) -> Result
         return read_document_txt(&file_path);
     }
 
-    let content = read_document_pdf(file_name).unwrap_or_else(|_| {
-        println!("Error al leer el PDF, intentando alternativa...");
+    if file_extension == "pdf" {
+        let content = match read_document_pdf(file_name) {
+            Ok(content) if !content.is_empty() => content, // Si la función tiene éxito y el contenido no está vacío, úsalo.
+            Ok(_) => {
+                println!("El PDF está vacío o no se pudo leer, intentando alternativa...");
 
-        division_pdf(file_name).unwrap();
+                division_pdf(file_name).unwrap();
 
-        match get_files_from_folder("books-fracts") {
-            Ok(filename_extension_tuples) => {
-                let mut combined_content = String::new();
-                for (file, _) in filename_extension_tuples.iter() {
-                    if let Ok(content) = read_tet_document_pdf(file) {
-                        combined_content.push_str(&content);
-                        combined_content.push(' ');
+                match get_files_from_folder("books-fracts") {
+                    Ok(filename_extension_tuples) => {
+                        let mut combined_content = String::new();
+                        for (file, _) in filename_extension_tuples.iter() {
+                            if let Ok(content) = read_tet_document_pdf(file) {
+                                combined_content.push_str(&content);
+                                combined_content.push(' ');
+                            }
+                        }
+                        clean_folder("books-fracts");
+                        combined_content
+                    }
+                    Err(e) => {
+                        println!("Error en get_files_from_folder: {:?}", e);
+                        String::new()
                     }
                 }
-                clean_folder("books-fracts");
-                combined_content
             }
-            Err(e) => {
-                println!("Error en get_files_from_folder: {:?}", e);
+            Err(error) => {
+                println!(
+                    "Fallo al leer el pdf, todas las alternativas han sido utilizadas: {:?}",
+                    error
+                );
                 String::new()
             }
-        }
-    });
-
-    Ok(content)
+        };
+        Ok(content)
+    } else {
+        println!("El archivo no tiene extension 'txt' ó 'pdf' ");
+        Ok(String::new())
+    }
 }
 
 pub fn clean_folder(folder_name: &str) {

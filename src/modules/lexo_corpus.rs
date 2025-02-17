@@ -6,7 +6,7 @@ use crate::modules::{
 };
 
 use super::{
-    file_handlers::create_csv_ordered,
+    file_handlers::{create_csv_inter_words, create_csv_ordered},
     lexical_analisis::{analyzer_content, initializer_word_hashmap_handler},
     linear_regression::linear_regression_x1,
     plot_handlers::{scatter_plot, to_tuples},
@@ -27,6 +27,7 @@ pub fn option_one() {
     let mut file_path_input = String::new();
     // HashMap para guardar las palabras encontradas dentro del texto junto con su cantidad de repeticiones
     let mut words: HashMap<String, u32> = HashMap::new();
+    // HashMap para guardar las palabras inter-word de interes el documento
     let (mut inter_words_hashmaps, mut last_positions, inter_words_strings) =
         create_inter_words().unwrap();
 
@@ -46,8 +47,8 @@ pub fn option_one() {
         }
 
         let (name_f, extension_f) = file_path_input.split_once(".").unwrap();
-        file_name = name_f.to_string();
-        file_extension = extension_f.to_string();
+        file_name = name_f.trim().to_string();
+        file_extension = extension_f.trim().to_string();
         content = match document_extract_content(&file_name, &file_extension) {
             Ok(content) => {
                 did_read = true;
@@ -77,8 +78,9 @@ pub fn option_one() {
 
     get_zipf_law_results(&mut keys, &mut values);
     create_csv_ordered(&keys, &values, &file_name);
+    create_csv_inter_words(&file_name, &inter_words_hashmaps, &inter_words_strings);
     let (log_ranking, log_values) = apply_to_log10(values).unwrap();
-    let parameters = linear_regression_x1(&log_values, &log_ranking).unwrap();
+    let parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
     let tuple_to_plot = to_tuples(log_ranking, log_values).unwrap();
     scatter_plot(tuple_to_plot, &file_name, &parameters).unwrap();
 }

@@ -3,7 +3,7 @@ use std::{
     io::{self, Error},
 };
 
-// Funcion para verificar que es una letra que pertenece a nuestro rango ASCII de interes (32-126)
+// Funcion para verificar que es una letra que pertenece a nuestro rango ASCII de interes
 pub fn is_ascii_valid(word: &str, ascii_interest: &Vec<u8>) -> Result<bool, Error> {
     let bytes_word = word.as_bytes();
     for byte in bytes_word {
@@ -31,13 +31,13 @@ pub fn input_inter_words() -> Result<Vec<String>, Error> {
     Ok(inter_words)
 }
 
-pub fn create_inter_words() -> Result<(Vec<HashMap<u64, u32>>, Vec<u64>, Vec<String>), Error> {
+pub fn create_inter_words() -> Result<(Vec<HashMap<u32, u32>>, Vec<u32>, Vec<String>), Error> {
     let inter_words_strings: Vec<String> = input_inter_words()?;
-    let mut last_positions: Vec<u64> = Vec::new();
-    let mut inter_words_hashmaps: Vec<HashMap<u64, u32>> = Vec::new();
+    let mut last_positions: Vec<u32> = Vec::new();
+    let mut inter_words_hashmaps: Vec<HashMap<u32, u32>> = Vec::new();
     let mut count_strings = 0;
     while count_strings < inter_words_strings.len() {
-        let inter_words: HashMap<u64, u32> = HashMap::new();
+        let inter_words: HashMap<u32, u32> = HashMap::new();
         last_positions.push(0);
         inter_words_hashmaps.push(inter_words);
         count_strings += 1
@@ -50,8 +50,8 @@ pub fn analyzer_content(
     content: String,
     words: &mut HashMap<String, u32>,
     ascii_interest: &Vec<u8>,
-    inter_words_hashmaps: &mut Vec<HashMap<u64, u32>>,
-    last_positions: &mut Vec<u64>,
+    inter_words_hashmaps: &mut Vec<HashMap<u32, u32>>,
+    last_positions: &mut Vec<u32>,
     inter_words_strings: &Vec<String>,
 ) {
     for (index, word) in content.split_whitespace().enumerate() {
@@ -66,16 +66,16 @@ pub fn analyzer_content(
                             .entry(0)
                             .or_insert(0);
 
-                        last_positions[index_input_strings] = index as u64;
+                        last_positions[index_input_strings] = index as u32;
                         continue;
                     }
-                    let token_distance = index as u64 - 1 - last_positions[index_input_strings];
+                    let token_distance = index as u32 - 1 - last_positions[index_input_strings];
                     let count_distance = inter_words_hashmaps[index_input_strings]
                         .entry(token_distance)
                         .or_insert(0);
                     *count_distance += 1;
 
-                    last_positions[index_input_strings] = index as u64;
+                    last_positions[index_input_strings] = index as u32;
                 }
             }
         }

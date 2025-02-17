@@ -15,6 +15,7 @@ use modules::{
 
 fn main() {
     main_menu();
+    /*
     // Directorio donde se encuentran los pdf
     let base_path = String::from("books-pdf/");
     // Variable de salida para cuando se ingresa un pdf correcto
@@ -115,4 +116,6 @@ fn main() {
     //println!("{:?}", inter_words_strings);
     //println!("{:?}", inter_words_hashmaps);
     println!("{:?}", parameters);
+
+    */
 }

@@ -55,7 +55,6 @@ pub fn option_one() {
             .expect("[DEBUG] Error imprevisto: no deberia ejecutarse jamas ln:36 - main.rs");
 
         if file_path_input.trim() == "0" {
-            did_read = true;
             return;
         }
 
@@ -181,9 +180,20 @@ pub fn option_two() {
     let folder_warehouse = format!("./{}", file_name_dataset);
     let folder_warehouse_data = format!("./{}/data", &file_name_dataset);
     let folder_warehouse_plot = format!("./{}/plot", &file_name_dataset);
-    fs::create_dir(&folder_warehouse).unwrap();
-    fs::create_dir(&folder_warehouse_data).unwrap();
-    fs::create_dir(&folder_warehouse_plot).unwrap();
+    let folder_warehouse_exist = fs::exists(&folder_warehouse).unwrap();
+    let folder_warehouse_data_exist = fs::exists(&folder_warehouse_data).unwrap();
+    let folder_warehouse_plot_exist = fs::exists(&folder_warehouse_plot).unwrap();
+    if !folder_warehouse_exist {
+        fs::create_dir(&folder_warehouse).unwrap();
+    }
+
+    if !folder_warehouse_data_exist {
+        fs::create_dir(&folder_warehouse_data).unwrap();
+    }
+
+    if !folder_warehouse_plot_exist {
+        fs::create_dir(&folder_warehouse_plot).unwrap();
+    }
 
     let pb = ProgressBar::new(total_load_size);
     pb.set_style(

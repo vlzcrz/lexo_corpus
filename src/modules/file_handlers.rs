@@ -49,9 +49,14 @@ pub fn create_csv_unordered(words: &HashMap<String, u32>) {
 
 // FUnción que crea los listados de palabras totales y las n50 palabras mas frecuentes de manera ordenada
 
-pub fn create_csv_ordered(keys: &Vec<String>, values: &Vec<u32>, file_path: &str) {
-    let file_path_nall = format!("books-data/{}.csv", file_path);
-    let file_path_n50 = format!("books-data/{}-n50.csv", file_path);
+pub fn create_csv_ordered(
+    keys: &Vec<String>,
+    values: &Vec<u32>,
+    file_name: &str,
+    folder_name: &str,
+) {
+    let file_path_nall = format!("{}/{}.csv", folder_name, file_name);
+    let file_path_n50 = format!("{}/{}-n50.csv", folder_name, file_name);
     let mut word_list = csv::Writer::from_path(file_path_nall).unwrap();
     let mut word_list_n50 = csv::Writer::from_path(file_path_n50).unwrap();
     for (index, word) in keys.iter().enumerate() {
@@ -73,11 +78,12 @@ pub fn create_csv_inter_words(
     file_name: &str,
     inter_words_hashmaps: &Vec<HashMap<u32, u32>>,
     inter_words_strings: &Vec<String>,
+    folder_name: &str,
 ) {
     for (index, inter_word_hashmap) in inter_words_hashmaps.iter().enumerate() {
         let inter_word_path = format!(
-            "books-data/{}-interword-{}.csv",
-            file_name, inter_words_strings[index]
+            "{}/{}-interword-{}.csv",
+            folder_name, file_name, inter_words_strings[index]
         );
         let mut inter_word_list = csv::Writer::from_path(inter_word_path).unwrap();
         for (token_distance, frequency) in inter_word_hashmap.iter() {

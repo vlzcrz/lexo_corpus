@@ -2,12 +2,11 @@ use std::{
     cmp::min,
     collections::HashMap,
     fmt::Write,
-    fs::{self, File},
-    io, result, thread,
+    fs, io, thread,
     time::{Duration, Instant},
 };
 
-use indicatif::{HumanDuration, ProgressBar, ProgressState, ProgressStyle};
+use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 
 use crate::modules::{
     cli_handlers::clear_screen,
@@ -42,6 +41,8 @@ pub fn option_one() {
     let (mut inter_words_hashmaps, mut last_positions, inter_words_strings) =
         create_inter_words().unwrap();
 
+    let default_folder_data = "books-data";
+    let default_folder_plot = "books-plot";
     let mut content = String::new();
     let mut file_name = String::new();
     let mut file_extension = String::new();
@@ -95,13 +96,24 @@ pub fn option_one() {
     println!("# Finalizado.");
     println!("# Inicio de procesamiento del contenido...");
     get_zipf_law_results(&mut keys, &mut values);
-    create_csv_ordered(&keys, &values, &file_name);
-    create_csv_inter_words(&file_name, &inter_words_hashmaps, &inter_words_strings);
+    create_csv_ordered(&keys, &values, &file_name, &default_folder_data);
+    create_csv_inter_words(
+        &file_name,
+        &inter_words_hashmaps,
+        &inter_words_strings,
+        &default_folder_data,
+    );
     let (log_ranking, log_values) = apply_to_log10(values).unwrap();
     let parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
     println!("{:?}", parameters);
     let tuples_to_plot = to_tuples(log_ranking, log_values).unwrap();
-    scatter_plot(tuples_to_plot, &file_name, &parameters).unwrap();
+    scatter_plot(
+        tuples_to_plot,
+        &file_name,
+        &parameters,
+        &default_folder_plot,
+    )
+    .unwrap();
     println!("# Finalizado.");
     println!("Ejecutado en {:.3?}", started.elapsed());
 }
@@ -166,6 +178,12 @@ pub fn option_two() {
         file_name_dataset, file_extension_dataset
     );
     let started = Instant::now();
+    let folder_warehouse = format!("./{}", file_name_dataset);
+    let folder_warehouse_data = format!("./{}/data", &file_name_dataset);
+    let folder_warehouse_plot = format!("./{}/plot", &file_name_dataset);
+    fs::create_dir(&folder_warehouse).unwrap();
+    fs::create_dir(&folder_warehouse_data).unwrap();
+    fs::create_dir(&folder_warehouse_plot).unwrap();
 
     let pb = ProgressBar::new(total_load_size);
     pb.set_style(
@@ -203,12 +221,23 @@ pub fn option_two() {
         }
 
         get_zipf_law_results(&mut keys, &mut values);
-        create_csv_ordered(&keys, &values, &file_name);
-        create_csv_inter_words(&file_name, &inter_words_hashmaps, &inter_words_strings);
+        create_csv_ordered(&keys, &values, &file_name, &folder_warehouse_data);
+        create_csv_inter_words(
+            &file_name,
+            &inter_words_hashmaps,
+            &inter_words_strings,
+            &folder_warehouse_data,
+        );
         let (log_ranking, log_values) = apply_to_log10(values).unwrap();
         let parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
         let tuples_to_plot = to_tuples(log_ranking, log_values).unwrap();
-        scatter_plot(tuples_to_plot, &file_name, &parameters).unwrap();
+        scatter_plot(
+            tuples_to_plot,
+            &file_name,
+            &parameters,
+            &folder_warehouse_plot,
+        )
+        .unwrap();
 
         let alphas = year_alphas_hashmaps
             .entry(*year)
@@ -219,12 +248,12 @@ pub fn option_two() {
         loading_value = new;
         pb.set_position(new);
     }
-    pb.finish_with_message("Carga completada!");
+    pb.finish_with_message("Carga completada.");
     println!("# Inicio de elaboración de Grafico alpha...");
     let (x_values, y_values) = hashmap_means(year_alphas_hashmaps).unwrap();
     let mut tuples_to_plot = to_tuples_x_int(x_values, y_values).unwrap();
     tuples_to_plot.sort_by_key(|k| k.0);
-    scatter_plot_alpha(tuples_to_plot, &file_name_dataset).unwrap();
+    scatter_plot_alpha(tuples_to_plot, &file_name_dataset, &folder_warehouse_plot).unwrap();
     println!("# Finalizado...");
     println!("Ejecutado en {:.3?}", started.elapsed());
 }

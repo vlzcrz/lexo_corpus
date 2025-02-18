@@ -11,9 +11,10 @@ pub fn scatter_plot(
     tuple: Vec<(f64, f64)>,
     file_name: &str,
     lr_parameters: &Vec<f64>,
+    folder_name: &str,
 ) -> Result<(), Error> {
     let image_extension: &str = "png";
-    let plot_path = format!("books-plot/{}.{}", file_name, image_extension);
+    let plot_path = format!("{}/{}.{}", folder_name, file_name, image_extension);
     let plot_title = format!("Zipf's Law (Log) - File: {}", file_name);
 
     let (_, y_limit_first) = &tuple[0];
@@ -107,9 +108,13 @@ pub fn hashmap_means(hashmap: HashMap<i32, Vec<f64>>) -> Result<(Vec<i32>, Vec<f
     Ok((x_values, y_values))
 }
 
-pub fn scatter_plot_alpha(tuple: Vec<(i32, f64)>, file_name: &str) -> Result<(), Error> {
+pub fn scatter_plot_alpha(
+    tuple: Vec<(i32, f64)>,
+    file_name: &str,
+    folder_name: &str,
+) -> Result<(), Error> {
     let image_extension: &str = "png";
-    let plot_path = format!("books-plot/{}.{}", file_name, image_extension);
+    let plot_path = format!("{}/{}.{}", folder_name, file_name, image_extension);
     let plot_title = format!("Alpha by year - Dataset: {}", file_name);
 
     // search max x, y values

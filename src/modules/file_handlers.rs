@@ -27,8 +27,9 @@ pub fn read_document_pdf(file_name: &str) -> Result<String, OutputError> {
 }
 
 // una función que permita leer el documento txt
-pub fn read_document_txt(path: &str) -> Result<String, Error> {
-    let mut f = File::open(path)?;
+pub fn read_document_txt(file_name: &str) -> Result<String, Error> {
+    let file_path = format!("books-txt/{}.txt", file_name);
+    let mut f = File::open(file_path)?;
     let mut content = String::new();
     f.read_to_string(&mut content)?;
     Ok(content)
@@ -86,6 +87,23 @@ pub fn create_csv_inter_words(
         }
         inter_word_list.flush().unwrap();
     }
+}
+
+type DocumentFile = (String, i32);
+
+pub fn extract_csv_labeled_data(
+    file_name: &str,
+    file_extension: &str,
+) -> Result<Vec<(String, i32)>, Error> {
+    let file_path = format!("./labeled-data/{}.{}", file_name, file_extension);
+    let file = File::open(file_path).unwrap();
+    let mut rdr = csv::Reader::from_reader(file);
+    let mut csv_content: Vec<(String, i32)> = Vec::new();
+    for result in rdr.deserialize() {
+        let record: DocumentFile = result.unwrap();
+        csv_content.push(record);
+    }
+    Ok(csv_content)
 }
 
 pub fn division_pdf(file_name: &str) -> Result<bool, Error> {
@@ -171,10 +189,8 @@ pub fn read_tet_document_pdf(file_name: &str) -> Result<String, Error> {
 }
 
 pub fn document_extract_content(file_name: &str, file_extension: &str) -> Result<String, Error> {
-    let file_path = format!("books-pdf/{}.{}", file_name, file_extension);
-
     if file_extension == "txt" {
-        return read_document_txt(&file_path);
+        return read_document_txt(file_name);
     }
 
     if file_extension == "pdf" {

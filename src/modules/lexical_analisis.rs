@@ -46,6 +46,22 @@ pub fn create_inter_words() -> Result<(Vec<HashMap<u32, u32>>, Vec<u32>, Vec<Str
     Ok((inter_words_hashmaps, last_positions, inter_words_strings))
 }
 
+pub fn create_inter_words_differ(
+    inter_words_strings: &Vec<String>,
+) -> Result<(Vec<HashMap<u32, u32>>, Vec<u32>), Error> {
+    let mut last_positions: Vec<u32> = Vec::new();
+    let mut inter_words_hashmaps: Vec<HashMap<u32, u32>> = Vec::new();
+    let mut count_strings = 0;
+    while count_strings < inter_words_strings.len() {
+        let inter_words: HashMap<u32, u32> = HashMap::new();
+        last_positions.push(0);
+        inter_words_hashmaps.push(inter_words);
+        count_strings += 1
+    }
+
+    Ok((inter_words_hashmaps, last_positions))
+}
+
 pub fn analyzer_content(
     content: String,
     words: &mut HashMap<String, u32>,

@@ -1,6 +1,9 @@
 use std::io;
 
-use crate::modules::{file_handlers::clean_folder, lexo_corpus::option_one};
+use crate::modules::{
+    file_handlers::clean_folder,
+    lexo_corpus::{option_one, option_two},
+};
 
 pub fn main_menu() {
     let mut user_input = String::new();
@@ -8,12 +11,11 @@ pub fn main_menu() {
     while user_input.trim() != "0" {
         println!(
             "
-            
-            [LEXO CORPUS PR-CLI] Menu principal
-            1.- Analizar documento de manera individual
-            2.- Analizar lote de documentos de manera automatizada 
-            3.- Limpiar carpeta
-            0.- Salir
+[LEXO CORPUS PR-CLI] Menu principal
+1.- Analizar documento de manera individual.
+2.- Analizar lote de documentos de manera conjunta. 
+3.- Limpiar carpeta.
+0.- Salir.
         "
         );
         user_input.clear();
@@ -26,7 +28,7 @@ pub fn main_menu() {
         }
 
         if user_input.trim() == "2" {
-            println!("Función no implementada aún")
+            option_two();
         }
 
         if user_input.trim() == "3" {

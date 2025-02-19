@@ -72,11 +72,31 @@ pub fn analyzer_content(
     inter_words_hashmaps: &mut Vec<HashMap<u32, u32>>,
     last_positions: &mut Vec<u32>,
     inter_words_strings: &Vec<String>,
-) {
-    for (index, word) in content.split_whitespace().enumerate() {
+) -> Result<(Vec<u32>, Vec<u32>), Error> {
+    let len_words = content.split_whitespace().count() as i32 - 1;
+    let mut batches: Vec<i32> = Vec::new();
+    let mut batch_index_iter = 0;
+    for i in 1..=10 {
+        batches.push((len_words * i) / 10);
+    }
+    println!("batches limits: {:?}", batches);
+    //let mut heaps_law_tuples_vec: Vec<(u32, u32)> = Vec::new();
+
+    let mut n_words_total = 0;
+    let mut n_words_unique = 0;
+
+    let mut n_words_total_vec: Vec<u32> = Vec::new();
+    let mut n_words_unique_vec: Vec<u32> = Vec::new();
+
+    for (index_word, word) in content.split_whitespace().enumerate() {
         if is_ascii_valid(word, ascii_interest).unwrap() {
             let count = words.entry(word.to_string()).or_insert(0);
+            if *count == 0 {
+                n_words_unique += 1;
+            }
             *count += 1;
+
+            n_words_total += 1;
 
             for (index_input_strings, inter_word_string) in inter_words_strings.iter().enumerate() {
                 if word == inter_word_string {
@@ -85,24 +105,33 @@ pub fn analyzer_content(
                             .entry(0)
                             .or_insert(0);
 
-                        last_positions[index_input_strings] = index as u32;
+                        last_positions[index_input_strings] = index_word as u32;
                         continue;
                     }
-                    let token_distance = index as u32 - 1 - last_positions[index_input_strings];
+                    let token_distance =
+                        index_word as u32 - 1 - last_positions[index_input_strings];
                     let count_distance = inter_words_hashmaps[index_input_strings]
                         .entry(token_distance)
                         .or_insert(0);
                     *count_distance += 1;
 
-                    last_positions[index_input_strings] = index as u32;
+                    last_positions[index_input_strings] = index_word as u32;
                 }
             }
+        }
+
+        if index_word as i32 >= batches[batch_index_iter] {
+            n_words_total_vec.push(n_words_total);
+            n_words_unique_vec.push(n_words_unique);
+            batch_index_iter += 1;
         }
     }
 
     for hashmap in inter_words_hashmaps.iter_mut() {
         hashmap.remove(&0);
     }
+
+    Ok((n_words_total_vec, n_words_unique_vec))
 }
 
 pub fn initializer_word_hashmap_handler(

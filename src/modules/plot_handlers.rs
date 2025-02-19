@@ -14,7 +14,10 @@ pub fn scatter_plot(
     folder_name: &str,
 ) -> Result<(), Error> {
     let image_extension: &str = "png";
-    let plot_path = format!("{}/{}.{}", folder_name, file_name, image_extension);
+    let plot_path = format!(
+        "{}/{}-zipf-plot.{}",
+        folder_name, file_name, image_extension
+    );
     let plot_title = format!("Zipf's Law (Log) - File: {}", file_name);
 
     let (_, y_limit_first) = &tuple[0];
@@ -93,6 +96,18 @@ pub fn to_tuples_x_int(x_values: Vec<i32>, y_values: Vec<f64>) -> Result<Vec<(i3
     Ok(tuple)
 }
 
+pub fn to_tuples_generic<X, Y>(x_values: Vec<X>, y_values: Vec<Y>) -> Result<Vec<(X, Y)>, Error> {
+    if x_values.len() != y_values.len() {
+        return Err(Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Los valores de x_values y y_values deben ser del mismo largo",
+        ));
+    }
+    let result = x_values.into_iter().zip(y_values.into_iter()).collect();
+
+    Ok(result)
+}
+
 pub fn hashmap_means(hashmap: HashMap<i32, Vec<f64>>) -> Result<(Vec<i32>, Vec<f64>), Error> {
     let mut x_values: Vec<i32> = Vec::new();
     let mut y_values: Vec<f64> = Vec::new();
@@ -157,6 +172,75 @@ pub fn scatter_plot_alpha(
         .y_labels(6)
         .x_desc("Years")
         .y_desc("Alpha")
+        .axis_desc_style(("sans-serif", 20))
+        .draw()
+        .unwrap();
+
+    chart
+        .draw_series(LineSeries::new(tuple.iter().map(|&p| p), &BLUE))
+        .unwrap()
+        .label("label 1");
+
+    chart
+        .draw_series(PointSeries::of_element(
+            tuple.iter().map(|&p| p),
+            3,
+            &RED,
+            &|c, s, st| {
+                return EmptyElement::at(c) + Circle::new((0, 0), s, st.filled());
+            },
+        ))
+        .unwrap();
+
+    root.present().unwrap();
+    Ok(())
+}
+
+pub fn scatter_plot_heaps_law(
+    mut tuple: Vec<(u32, u32)>,
+    file_name: &str,
+    folder_name: &str,
+) -> Result<(), Error> {
+    let image_extension: &str = "png";
+    let plot_path = format!(
+        "{}/{}-heaps-plot.{}",
+        folder_name, file_name, image_extension
+    );
+    let plot_title = format!("Heap's Law - Dataset: {}", file_name);
+    if !tuple.contains(&(0, 0)) {
+        tuple.insert(0, (0, 0));
+    }
+
+    // search max x, y values
+    let mut max_y: u32 = 0;
+    let mut max_x: u32 = 0;
+    for (x_value, y_value) in tuple.iter() {
+        if x_value > &max_x {
+            max_x = *x_value
+        }
+
+        if y_value > &max_y {
+            max_y = *y_value
+        }
+    }
+
+    let root = BitMapBackend::new(&plot_path, (960, 720)).into_drawing_area();
+    root.fill(&WHITE).unwrap();
+    let root = root.margin(15, 15, 15, 15);
+
+    let mut chart = ChartBuilder::on(&root)
+        .caption(plot_title, ("sans-serif", 28))
+        .x_label_area_size(50)
+        .y_label_area_size(60)
+        .build_cartesian_2d(0u32..max_x, 0u32..max_y + 2)
+        .unwrap();
+
+    chart
+        .configure_mesh()
+        .x_labels(6)
+        .y_labels(6)
+        .x_desc("Total document's words")
+        .y_desc("Total unique words found")
         .axis_desc_style(("sans-serif", 20))
         .draw()
         .unwrap();

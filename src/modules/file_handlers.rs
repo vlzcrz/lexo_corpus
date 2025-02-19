@@ -245,3 +245,36 @@ pub fn clean_folder(folder_name: &str) {
     fs::remove_dir_all(&folder_path).unwrap();
     fs::create_dir(&folder_path).unwrap();
 }
+
+pub fn plot_zipf_law(file_name: &str) -> Result<bool, Error> {
+    let file_path = format!("books-pdf/{}.pdf", file_name);
+    let code = c_str!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/python/utils/file_handler.py"
+    )));
+
+    let call_result = Python::with_gil(|py| {
+        let module =
+            PyModule::from_code(py, code, c_str!("file_handler"), c_str!("file_handler")).unwrap();
+        let function = module.getattr("split_pdf").unwrap();
+
+        // Nombre del archivo PDF de entrada
+        //let input_pdf = "books-pdf/tallerads.pdf";
+
+        // Llamar a la función split_pdf en Python
+        let result = function.call1((file_path,));
+
+        match result {
+            Ok(_) => {
+                println!("Division PDF exitosa");
+                return true;
+            }
+            Err(err) => {
+                println!("Error al dividir PDF: {:?}", err);
+                return false;
+            }
+        }
+    });
+
+    Ok(call_result)
+}

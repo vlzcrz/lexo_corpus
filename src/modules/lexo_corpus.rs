@@ -13,8 +13,8 @@ use crate::modules::{
     file_handlers::{document_extract_content, extract_csv_labeled_data, get_files_from_folder},
     lexical_analisis::{create_inter_words, create_inter_words_differ, input_inter_words},
     plot_handlers::{
-        hashmap_means, scatter_plot_alpha, scatter_plot_heaps_law, to_tuples_generic,
-        to_tuples_x_int,
+        hashmap_means, plot_heaps_law, scatter_plot_alpha, scatter_plot_heaps_law,
+        to_tuples_generic, to_tuples_x_int,
     },
     zipfs_handlers::vec_apply_to_log10,
 };
@@ -110,9 +110,16 @@ pub fn option_one() {
     );
     let log_n_words_total = vec_apply_to_log10(&n_words_total_vec).unwrap();
     let log_n_words_unique = vec_apply_to_log10(&n_words_unique_vec).unwrap();
-    let tuples_to_plot_heaps = to_tuples_generic(n_words_total_vec, n_words_unique_vec).unwrap();
-    scatter_plot_heaps_law(tuples_to_plot_heaps, &file_name, "books-plot").unwrap();
+    // let tuples_to_plot_heaps = to_tuples_generic(n_words_total_vec, n_words_unique_vec).unwrap();
+    // scatter_plot_heaps_law(tuples_to_plot_heaps, &file_name, "books-plot").unwrap();
     // let heaps_parameters = linear_regression_x1(&log_n_words_total, &log_n_words_unique).unwrap();
+    plot_heaps_law(
+        &n_words_total_vec,
+        &n_words_unique_vec,
+        "./books-plot/",
+        &file_name,
+    )
+    .unwrap();
 
     let (log_ranking, log_values) = apply_to_log10(values).unwrap();
     let zipfs_parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();

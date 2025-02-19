@@ -6,6 +6,11 @@ use plotters::{
     series::{LineSeries, PointSeries},
     style::{BLUE, RED, WHITE},
 };
+use pyo3::{
+    ffi::c_str,
+    types::{PyAnyMethods, PyModule},
+    Python,
+};
 
 pub fn scatter_plot(
     tuple: Vec<(f64, f64)>,
@@ -263,4 +268,42 @@ pub fn scatter_plot_heaps_law(
 
     root.present().unwrap();
     Ok(())
+}
+
+pub fn plot_heaps_law(
+    x_values: &Vec<u32>,
+    y_values: &Vec<u32>,
+    folder_name: &str,
+    file_name: &str,
+) -> Result<bool, Error> {
+    let code = c_str!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/python/utils/plot_handler.py"
+    )));
+
+    let call_result = Python::with_gil(|py| {
+        let module =
+            PyModule::from_code(py, code, c_str!("plot_handler"), c_str!("plot_handler")).unwrap();
+        let function = module.getattr("lineplot_heaps_law").unwrap();
+
+        // Nombre del archivo PDF de entrada
+        //let input_pdf = "books-pdf/tallerads.pdf";
+
+        // Llamar a la función split_pdf en Python
+        let args = (x_values, y_values, folder_name, file_name);
+        let result = function.call1(args);
+
+        match result {
+            Ok(_) => {
+                println!("Plot exitoso");
+                return true;
+            }
+            Err(err) => {
+                println!("Error al plotear: {:?}", err);
+                return false;
+            }
+        }
+    });
+
+    Ok(call_result)
 }

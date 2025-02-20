@@ -12,16 +12,13 @@ use crate::modules::{
     cli_handlers::clear_screen,
     file_handlers::{document_extract_content, extract_csv_labeled_data, get_files_from_folder},
     lexical_analisis::{create_inter_words, create_inter_words_differ, input_inter_words},
-    plot_handlers::{
-        hashmap_means, plot_heaps_law, plot_zipf_law, scatter_plot_alpha, to_tuples_x_int,
-    },
+    plot_handlers::{lineplot_alpha_year, means_hashmap_to_vectors, plot_heaps_law, plot_zipf_law},
 };
 
 use super::{
     file_handlers::{create_csv_inter_words, create_csv_ordered},
     lexical_analisis::{analyzer_content, initializer_word_hashmap_handler},
     linear_regression::linear_regression_x1,
-    plot_handlers::{scatter_plot, to_tuples},
     zipfs_handlers::{apply_to_log10, get_zipf_law_results},
 };
 
@@ -112,7 +109,6 @@ pub fn option_one() {
         &n_words_unique_vec,
         &default_folder_plot,
         &file_name,
-        &file_extension,
     )
     .unwrap();
 
@@ -125,7 +121,6 @@ pub fn option_one() {
         &zipfs_parameters,
         &default_folder_plot,
         &file_name,
-        &file_extension,
     )
     .unwrap();
 
@@ -264,7 +259,6 @@ pub fn option_two() {
             &parameters,
             &folder_warehouse_plot,
             &file_name,
-            &file_extension,
         )
         .unwrap();
 
@@ -273,7 +267,6 @@ pub fn option_two() {
             &n_words_unique_vec,
             &folder_warehouse_plot,
             &file_name,
-            &file_extension,
         )
         .unwrap();
 
@@ -288,10 +281,19 @@ pub fn option_two() {
     }
     pb.finish_with_message("Carga completada.");
     println!("# Inicio de elaboración de Grafico alpha...");
-    let (x_values, y_values) = hashmap_means(year_alphas_hashmaps).unwrap();
-    let mut tuples_to_plot = to_tuples_x_int(x_values, y_values).unwrap();
-    tuples_to_plot.sort_by_key(|k| k.0);
-    scatter_plot_alpha(tuples_to_plot, &file_name_dataset, &folder_warehouse_plot).unwrap();
+    let (x_values, y_values) = means_hashmap_to_vectors(year_alphas_hashmaps).unwrap();
+
+    lineplot_alpha_year(
+        "Alpha variation",
+        "Alpha",
+        "Year",
+        &x_values,
+        &y_values,
+        &folder_warehouse_plot,
+        &file_name_dataset,
+    )
+    .unwrap();
+
     println!("# Finalizado...");
     println!("Ejecutado en {:.3?}", started.elapsed());
 }

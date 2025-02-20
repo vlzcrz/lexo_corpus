@@ -32,7 +32,7 @@ def lineplot_heaps_law(x_values, y_values, output_path, file_name):
 
     # Guardar el gráfico
     plt.savefig(output_path_formatted, dpi=150, bbox_inches="tight")
-
+    plt.close()
     print(f"Gráfico guardado en: {os.path.abspath(output_path_formatted)}")
 
 
@@ -54,7 +54,6 @@ def lineplot_log10_zipf_law(x_values, y_values, slope, intersection, output_path
 
     sns.lineplot(x=x_regression, y=y_regression, color="red", alpha=0.7 ,label="LinRegress")
 
-
     # Personalizar ejes y título
     plt.xlabel('Log (ranking)', fontsize=12, color="darkslategray", labelpad=15)
     plt.ylabel('Log (frequency)', fontsize=12, color="darkslategray", labelpad=15)
@@ -66,5 +65,38 @@ def lineplot_log10_zipf_law(x_values, y_values, slope, intersection, output_path
 
     # Guardar el gráfico
     plt.savefig(output_path_formatted, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Gráfico guardado en: {os.path.abspath(output_path_formatted)}")
 
+
+def lineplot_csv_dataset(title, x_label, y_label, x_values, y_values, output_path, file_name):
+    output_path_formatted = os.path.join(output_path, file_name)
+    
+    # Configurar estilo general
+    sns.set_theme(style="whitegrid")
+
+    # Crear figura
+    plt.figure(figsize=(12, 7))
+    
+    # Graficar con estilo mejorado
+    plot = sns.lineplot(
+        x=x_values, y=y_values, 
+        marker="o",  # Agrega marcadores en los puntos
+        markersize=8,
+        linewidth=1.2,
+        color="#D64045"  # Color más llamativo
+    )
+
+    # Personalizar ejes y título
+    plt.xlabel(x_label, fontsize=12, color="darkslategray", labelpad=15)
+    plt.ylabel(y_label, fontsize=12, color="darkslategray", labelpad=15)
+    plt.title(f'{title} - ({file_name} dataset)', fontsize=16, fontweight='bold', color="darkslategray")
+    
+    # Cuadrícula más sutil
+    plt.grid(True, linestyle=":", linewidth=0.8, alpha=0.5)
+    
+
+    # Guardar el gráfico
+    plt.savefig(output_path_formatted, dpi=150, bbox_inches="tight")
+    plt.close()
     print(f"Gráfico guardado en: {os.path.abspath(output_path_formatted)}")

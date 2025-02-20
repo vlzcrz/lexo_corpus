@@ -79,7 +79,9 @@ pub fn analyzer_content(
     for i in 1..=10 {
         batches.push((len_words * i) / 10);
     }
+    batches.insert(0, 1);
     println!("batches limits: {:?}", batches);
+
     //let mut heaps_law_tuples_vec: Vec<(u32, u32)> = Vec::new();
 
     let mut n_words_total = 0;

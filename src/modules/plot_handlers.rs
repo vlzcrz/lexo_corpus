@@ -229,7 +229,7 @@ pub fn scatter_plot_heaps_law(
         }
     }
 
-    let root = BitMapBackend::new(&plot_path, (960, 720)).into_drawing_area();
+    let root = BitMapBackend::new(&plot_path, (960, 640)).into_drawing_area();
     root.fill(&WHITE).unwrap();
     let root = root.margin(15, 15, 15, 15);
 
@@ -237,7 +237,7 @@ pub fn scatter_plot_heaps_law(
         .caption(plot_title, ("sans-serif", 28))
         .x_label_area_size(50)
         .y_label_area_size(60)
-        .build_cartesian_2d(0u32..max_x, 0u32..max_y + 2)
+        .build_cartesian_2d(0u32..max_x, 0u32..max_y + 30)
         .unwrap();
 
     chart
@@ -275,6 +275,7 @@ pub fn plot_heaps_law(
     y_values: &Vec<u32>,
     folder_name: &str,
     file_name: &str,
+    file_extension: &str,
 ) -> Result<bool, Error> {
     let code = c_str!(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -290,7 +291,57 @@ pub fn plot_heaps_law(
         //let input_pdf = "books-pdf/tallerads.pdf";
 
         // Llamar a la función split_pdf en Python
-        let args = (x_values, y_values, folder_name, file_name);
+
+        let file_name_formatted = format!("heaps-law ({}.{})", file_name, file_extension);
+        let args = (x_values, y_values, folder_name, file_name_formatted);
+        let result = function.call1(args);
+
+        match result {
+            Ok(_) => {
+                println!("Plot exitoso");
+                return true;
+            }
+            Err(err) => {
+                println!("Error al plotear: {:?}", err);
+                return false;
+            }
+        }
+    });
+
+    Ok(call_result)
+}
+
+pub fn plot_zipf_law(
+    x_values: &Vec<f64>,
+    y_values: &Vec<f64>,
+    lr_parameters: &Vec<f64>,
+    folder_name: &str,
+    file_name: &str,
+    file_extension: &str,
+) -> Result<bool, Error> {
+    let code = c_str!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/python/utils/plot_handler.py"
+    )));
+
+    let call_result = Python::with_gil(|py| {
+        let module =
+            PyModule::from_code(py, code, c_str!("plot_handler"), c_str!("plot_handler")).unwrap();
+        let function = module.getattr("lineplot_log10_zipf_law").unwrap();
+
+        // Nombre del archivo PDF de entrada
+        //let input_pdf = "books-pdf/tallerads.pdf";
+
+        let file_name_formatted = format!("zipf-law ({}.{})", file_name, file_extension);
+        // Llamar a la función split_pdf en Python
+        let args = (
+            x_values,
+            y_values,
+            lr_parameters[1],
+            lr_parameters[0],
+            folder_name,
+            file_name_formatted,
+        );
         let result = function.call1(args);
 
         match result {

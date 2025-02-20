@@ -12,7 +12,9 @@ use crate::modules::{
     cli_handlers::clear_screen,
     file_handlers::{document_extract_content, extract_csv_labeled_data, get_files_from_folder},
     lexical_analisis::{create_inter_words, create_inter_words_differ, input_inter_words},
-    plot_handlers::{lineplot_alpha_year, means_hashmap_to_vectors, plot_heaps_law, plot_zipf_law},
+    plot_handlers::{
+        lineplot_alpha_year, means_hashmap_to_vectors, plot_heaps_law, plot_heat_map, plot_zipf_law,
+    },
 };
 
 use super::{
@@ -95,22 +97,34 @@ pub fn option_one() {
     println!("# Inicio de procesamiento del contenido...");
     get_zipf_law_results(&mut keys, &mut values);
     create_csv_ordered(&keys, &values, &file_name, &default_folder_data);
-    create_csv_inter_words(
+    let (vec_distance, vec_frequency) = create_csv_inter_words(
         &file_name,
         &inter_words_hashmaps,
         &inter_words_strings,
         &default_folder_data,
-    );
+    )
+    .unwrap();
     //let log_n_words_total = vec_apply_to_log10(&n_words_total_vec).unwrap();
     //let log_n_words_unique = vec_apply_to_log10(&n_words_unique_vec).unwrap();
+
+    plot_heat_map(
+        "Frequency distribution of inter word's distance",
+        "Distance",
+        "Inter Word",
+        &vec_distance,
+        &vec_frequency,
+        &inter_words_strings,
+        &default_folder_plot,
+        &file_name,
+        &file_extension,
+    );
 
     plot_heaps_law(
         &n_words_total_vec,
         &n_words_unique_vec,
         &default_folder_plot,
         &file_name,
-    )
-    .unwrap();
+    );
 
     let (log_ranking, log_values) = apply_to_log10(values).unwrap();
     let zipfs_parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
@@ -121,8 +135,7 @@ pub fn option_one() {
         &zipfs_parameters,
         &default_folder_plot,
         &file_name,
-    )
-    .unwrap();
+    );
 
     println!("# Finalizado.");
     println!("Ejecutado en {:.3?}", started.elapsed());
@@ -244,14 +257,28 @@ pub fn option_two() {
 
         get_zipf_law_results(&mut keys, &mut values);
         create_csv_ordered(&keys, &values, &file_name, &folder_warehouse_data);
-        create_csv_inter_words(
+        let (vec_distance, vec_frequency) = create_csv_inter_words(
             &file_name,
             &inter_words_hashmaps,
             &inter_words_strings,
             &folder_warehouse_data,
-        );
+        )
+        .unwrap();
+
         let (log_ranking, log_values) = apply_to_log10(values).unwrap();
         let parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
+
+        plot_heat_map(
+            "Frequency distribution of inter word's distance",
+            "Distance",
+            "Inter Word",
+            &vec_distance,
+            &vec_frequency,
+            &inter_words_strings,
+            &folder_warehouse_plot,
+            &file_name,
+            &file_extension,
+        );
 
         plot_zipf_law(
             &log_ranking,
@@ -259,16 +286,14 @@ pub fn option_two() {
             &parameters,
             &folder_warehouse_plot,
             &file_name,
-        )
-        .unwrap();
+        );
 
         plot_heaps_law(
             &n_words_total_vec,
             &n_words_unique_vec,
             &folder_warehouse_plot,
             &file_name,
-        )
-        .unwrap();
+        );
 
         let alphas = year_alphas_hashmaps
             .entry(*year)
@@ -285,14 +310,13 @@ pub fn option_two() {
 
     lineplot_alpha_year(
         "Alpha variation",
-        "Alpha",
         "Year",
+        "Alpha",
         &x_values,
         &y_values,
         &folder_warehouse_plot,
         &file_name_dataset,
-    )
-    .unwrap();
+    );
 
     println!("# Finalizado...");
     println!("Ejecutado en {:.3?}", started.elapsed());

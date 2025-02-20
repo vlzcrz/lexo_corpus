@@ -79,20 +79,31 @@ pub fn create_csv_inter_words(
     inter_words_hashmaps: &Vec<HashMap<u32, u32>>,
     inter_words_strings: &Vec<String>,
     folder_name: &str,
-) {
+) -> Result<(Vec<Vec<u32>>, Vec<Vec<u32>>), Error> {
+    let mut vec_distance: Vec<Vec<u32>> = Vec::new();
+    let mut vec_frequency: Vec<Vec<u32>> = Vec::new();
+
     for (index, inter_word_hashmap) in inter_words_hashmaps.iter().enumerate() {
+        let mut distances: Vec<u32> = Vec::new();
+        let mut frecuencies: Vec<u32> = Vec::new();
         let inter_word_path = format!(
             "{}/{}-interword-{}.csv",
             folder_name, file_name, inter_words_strings[index]
         );
         let mut inter_word_list = csv::Writer::from_path(inter_word_path).unwrap();
         for (token_distance, frequency) in inter_word_hashmap.iter() {
+            distances.push(*token_distance);
+            frecuencies.push(*frequency);
             inter_word_list
                 .write_record([token_distance.to_string(), frequency.to_string()])
                 .unwrap();
         }
+        vec_distance.push(distances);
+        vec_frequency.push(frecuencies);
         inter_word_list.flush().unwrap();
     }
+
+    Ok((vec_distance, vec_frequency))
 }
 
 type DocumentFile = (String, i32);
@@ -244,37 +255,4 @@ pub fn clean_folder(folder_name: &str) {
     let folder_path = format!("./{}/", folder_name);
     fs::remove_dir_all(&folder_path).unwrap();
     fs::create_dir(&folder_path).unwrap();
-}
-
-pub fn plot_zipf_law(file_name: &str) -> Result<bool, Error> {
-    let file_path = format!("books-pdf/{}.pdf", file_name);
-    let code = c_str!(include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/python/utils/file_handler.py"
-    )));
-
-    let call_result = Python::with_gil(|py| {
-        let module =
-            PyModule::from_code(py, code, c_str!("file_handler"), c_str!("file_handler")).unwrap();
-        let function = module.getattr("split_pdf").unwrap();
-
-        // Nombre del archivo PDF de entrada
-        //let input_pdf = "books-pdf/tallerads.pdf";
-
-        // Llamar a la función split_pdf en Python
-        let result = function.call1((file_path,));
-
-        match result {
-            Ok(_) => {
-                println!("Division PDF exitosa");
-                return true;
-            }
-            Err(err) => {
-                println!("Error al dividir PDF: {:?}", err);
-                return false;
-            }
-        }
-    });
-
-    Ok(call_result)
 }

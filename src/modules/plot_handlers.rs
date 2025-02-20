@@ -27,39 +27,21 @@ pub fn plot_heaps_law(
     y_values: &Vec<u32>,
     folder_name: &str,
     file_name: &str,
-) -> Result<bool, Error> {
+) {
     let code = c_str!(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/python/utils/plot_handler.py"
     )));
 
-    let call_result = Python::with_gil(|py| {
+    Python::with_gil(|py| {
         let module =
             PyModule::from_code(py, code, c_str!("plot_handler"), c_str!("plot_handler")).unwrap();
         let function = module.getattr("lineplot_heaps_law").unwrap();
 
-        // Nombre del archivo PDF de entrada
-        //let input_pdf = "books-pdf/tallerads.pdf";
-
-        // Llamar a la función split_pdf en Python
-
         let file_name_formatted = format!("heaps-law ({})", file_name);
         let args = (x_values, y_values, folder_name, file_name_formatted);
-        let result = function.call1(args);
-
-        match result {
-            Ok(_) => {
-                println!("Plot exitoso");
-                return true;
-            }
-            Err(err) => {
-                println!("Error al plotear: {:?}", err);
-                return false;
-            }
-        }
+        function.call1(args);
     });
-
-    Ok(call_result)
 }
 
 pub fn plot_zipf_law(
@@ -68,22 +50,18 @@ pub fn plot_zipf_law(
     lr_parameters: &Vec<f64>,
     folder_name: &str,
     file_name: &str,
-) -> Result<bool, Error> {
+) {
     let code = c_str!(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/python/utils/plot_handler.py"
     )));
 
-    let call_result = Python::with_gil(|py| {
+    Python::with_gil(|py| {
         let module =
             PyModule::from_code(py, code, c_str!("plot_handler"), c_str!("plot_handler")).unwrap();
         let function = module.getattr("lineplot_log10_zipf_law").unwrap();
 
-        // Nombre del archivo PDF de entrada
-        //let input_pdf = "books-pdf/tallerads.pdf";
-
         let file_name_formatted = format!("zipf-law ({})", file_name);
-        // Llamar a la función split_pdf en Python
         let args = (
             x_values,
             y_values,
@@ -92,21 +70,8 @@ pub fn plot_zipf_law(
             folder_name,
             file_name_formatted,
         );
-        let result = function.call1(args);
-
-        match result {
-            Ok(_) => {
-                println!("Plot exitoso");
-                return true;
-            }
-            Err(err) => {
-                println!("Error al plotear: {:?}", err);
-                return false;
-            }
-        }
+        function.call1(args);
     });
-
-    Ok(call_result)
 }
 
 pub fn lineplot_alpha_year(
@@ -117,23 +82,18 @@ pub fn lineplot_alpha_year(
     y_values: &Vec<f64>,
     folder_name: &str,
     file_name: &str,
-) -> Result<bool, Error> {
+) {
     let code = c_str!(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/python/utils/plot_handler.py"
     )));
 
-    let call_result = Python::with_gil(|py| {
+    Python::with_gil(|py| {
         let module =
             PyModule::from_code(py, code, c_str!("plot_handler"), c_str!("plot_handler")).unwrap();
         let function = module.getattr("lineplot_csv_dataset").unwrap();
 
-        // Nombre del archivo PDF de entrada
-        //let input_pdf = "books-pdf/tallerads.pdf";
-
-        // Llamar a la función split_pdf en Python
-
-        let file_name_formatted = format!("{}", file_name);
+        let file_name_formatted = format!("alpha-year {}", file_name);
         let args = (
             title,
             x_label,
@@ -143,19 +103,43 @@ pub fn lineplot_alpha_year(
             folder_name,
             file_name_formatted,
         );
-        let result = function.call1(args);
-
-        match result {
-            Ok(_) => {
-                println!("Plot exitoso");
-                return true;
-            }
-            Err(err) => {
-                println!("Error al plotear: {:?}", err);
-                return false;
-            }
-        }
+        function.call1(args);
     });
+}
 
-    Ok(call_result)
+pub fn plot_heat_map(
+    title: &str,
+    x_label: &str,
+    y_label: &str,
+    x_values: &Vec<Vec<u32>>,
+    y_values: &Vec<Vec<u32>>,
+    word_values: &Vec<String>,
+    folder_name: &str,
+    file_name: &str,
+    file_extension: &str,
+) {
+    let code = c_str!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/python/utils/plot_handler.py"
+    )));
+
+    Python::with_gil(|py| {
+        let module =
+            PyModule::from_code(py, code, c_str!("plot_handler"), c_str!("plot_handler")).unwrap();
+        let function = module.getattr("heat_map").unwrap();
+
+        let file_name_formatted = format!("interwords-heatmap: {}", file_name);
+        let title_formatted = format!("{} - file: {}.{}", title, file_name, file_extension);
+        let args = (
+            title_formatted,
+            x_label,
+            y_label,
+            word_values,
+            x_values,
+            y_values,
+            folder_name,
+            file_name_formatted,
+        );
+        function.call1(args);
+    });
 }

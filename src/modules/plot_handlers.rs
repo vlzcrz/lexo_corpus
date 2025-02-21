@@ -92,10 +92,10 @@ pub fn lineplot_alpha_year(
         let module =
             PyModule::from_code(py, code, c_str!("plot_handler"), c_str!("plot_handler")).unwrap();
         let function = module.getattr("lineplot_csv_dataset").unwrap();
-
-        let file_name_formatted = format!("alpha-year {}", file_name);
+        let file_name_formatted = format!("year-alpha {}", file_name);
+        let title_formatted = format!("{} ({} dataset)", title, file_name);
         let args = (
-            title,
+            title_formatted,
             x_label,
             y_label,
             x_values,

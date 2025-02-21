@@ -2,7 +2,7 @@ use std::io;
 
 use crate::modules::{
     file_handlers::clean_folder,
-    lexo_corpus::{option_one, option_two},
+    lexo_corpus::{option_one, option_three, option_two},
 };
 
 pub fn main_menu() {
@@ -13,8 +13,9 @@ pub fn main_menu() {
             "
 [LEXO CORPUS PR-CLI] Menu principal
 1.- Analizar documento de manera individual.
-2.- Analizar lote de documentos de manera conjunta. 
-3.- Limpiar carpeta.
+2.- Analizar lote de documentos de manera individual. 
+3.- Analizar lote de documentos de manera conjunta. 
+4.- Limpiar carpeta.
 0.- Salir.
         "
         );
@@ -32,6 +33,10 @@ pub fn main_menu() {
         }
 
         if user_input.trim() == "3" {
+            option_three();
+        }
+
+        if user_input.trim() == "4" {
             clean_folder("books-fracts");
         }
     }

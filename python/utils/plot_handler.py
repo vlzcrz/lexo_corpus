@@ -26,7 +26,7 @@ def lineplot_heaps_law(x_values, y_values, output_path, file_name):
     plt.grid(True, linestyle=":", linewidth=0.7, alpha=0.7)
     
     plt.savefig(output_path_formatted, dpi=150, bbox_inches="tight")
-    plt.close()
+    plt.close('all')
 
 
 
@@ -52,6 +52,7 @@ def lineplot_log10_zipf_law(x_values, y_values, slope, intersection, output_path
 
     plt.savefig(output_path_formatted, dpi=150, bbox_inches="tight")
     plt.close()
+    plt.close('all')
 
 
 def lineplot_csv_dataset(title, x_label, y_label, x_values, y_values, output_path, file_name):
@@ -72,14 +73,13 @@ def lineplot_csv_dataset(title, x_label, y_label, x_values, y_values, output_pat
 
     plt.xlabel(x_label, fontsize=12, color="darkslategray", labelpad=15)
     plt.ylabel(y_label, fontsize=12, color="darkslategray", labelpad=15)
-    plt.title(f'{title} - ({file_name} dataset)', fontsize=16, fontweight='bold', color="darkslategray")
+    plt.title(f'{title}', fontsize=16, fontweight='bold', color="darkslategray")
     
     plt.grid(True, linestyle=":", linewidth=0.8, alpha=0.5)
     
 
     plt.savefig(output_path_formatted, dpi=150, bbox_inches="tight")
-    plt.close()
-
+    plt.close('all')
 
 def heat_map(title, x_label, y_label, inter_words, distances, frequencies, output_path, file_name):
     output_path_formatted = os.path.join(output_path, file_name)
@@ -129,4 +129,4 @@ def heat_map(title, x_label, y_label, inter_words, distances, frequencies, outpu
     colorbar.update_ticks()
 
     plt.savefig(output_path_formatted, dpi=150, bbox_inches="tight")
-    plt.close()
+    plt.close('all')

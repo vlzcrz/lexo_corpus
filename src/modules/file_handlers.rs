@@ -59,6 +59,11 @@ pub fn create_csv_ordered(
     let file_path_n50 = format!("{}/{}-n50.csv", folder_name, file_name);
     let mut word_list = csv::Writer::from_path(file_path_nall).unwrap();
     let mut word_list_n50 = csv::Writer::from_path(file_path_n50).unwrap();
+
+    //Headers
+    word_list.write_record(["Words", "Frequency"]).unwrap();
+    word_list_n50.write_record(["Words", "Frequency"]).unwrap();
+
     for (index, word) in keys.iter().enumerate() {
         word_list
             .write_record([word, &values[index].to_string()])
@@ -91,6 +96,11 @@ pub fn create_csv_inter_words(
             folder_name, file_name, inter_words_strings[index]
         );
         let mut inter_word_list = csv::Writer::from_path(inter_word_path).unwrap();
+        // Header
+        inter_word_list
+            .write_record(["Words", "Frequency"])
+            .unwrap();
+
         for (token_distance, frequency) in inter_word_hashmap.iter() {
             distances.push(*token_distance);
             frecuencies.push(*frequency);

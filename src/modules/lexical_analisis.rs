@@ -133,6 +133,87 @@ pub fn analyzer_content(
     Ok((n_words_total_vec, n_words_unique_vec))
 }
 
+pub fn analyzer_content_dataset_opt(
+    content: String,
+    words: &mut HashMap<String, u32>,
+    words_unique_hashmap: &mut HashMap<String, u32>,
+    ascii_interest: &Vec<u8>,
+    inter_words_hashmaps: &mut Vec<HashMap<u32, u32>>,
+    last_positions: &mut Vec<u32>,
+    inter_words_strings: &Vec<String>,
+    n_words_total: &mut u32,
+    n_words_unique: &mut u32,
+    n_words_total_vec: &mut Vec<u32>,
+    n_words_unique_vec: &mut Vec<u32>,
+) -> Result<(Vec<u32>, Vec<u32>), Error> {
+    let len_words = content.split_whitespace().count() as i32 - 1;
+    let mut batches: Vec<i32> = Vec::new();
+    let mut batch_index_iter = 0;
+    for i in 1..=10 {
+        batches.push((len_words * i) / 10);
+    }
+    //batches.insert(0, 1);
+
+    let mut n_words_total_by_doc: u32 = 0;
+    let mut n_words_unique_by_doc: u32 = 0;
+    let mut n_words_total_vec_by_doc: Vec<u32> = Vec::new();
+    let mut n_words_unique_vec_by_doc: Vec<u32> = Vec::new();
+
+    for (index_word, word) in content.split_whitespace().enumerate() {
+        if is_ascii_valid(word, ascii_interest).unwrap() {
+            let count = words.entry(word.to_string()).or_insert(0);
+            if *count == 0 {
+                n_words_unique_by_doc += 1;
+            }
+            *count += 1;
+
+            let count_unique = words_unique_hashmap.entry(word.to_string()).or_insert(0);
+            if *count_unique == 0 {
+                *n_words_unique += 1;
+            }
+            *count_unique += 1;
+
+            *n_words_total += 1;
+            n_words_total_by_doc += 1;
+
+            for (index_input_strings, inter_word_string) in inter_words_strings.iter().enumerate() {
+                if word == inter_word_string {
+                    if inter_words_hashmaps[index_input_strings].is_empty() {
+                        inter_words_hashmaps[index_input_strings]
+                            .entry(0)
+                            .or_insert(0);
+
+                        last_positions[index_input_strings] = index_word as u32;
+                        continue;
+                    }
+                    let token_distance =
+                        index_word as u32 - 1 - last_positions[index_input_strings];
+                    let count_distance = inter_words_hashmaps[index_input_strings]
+                        .entry(token_distance)
+                        .or_insert(0);
+                    *count_distance += 1;
+
+                    last_positions[index_input_strings] = index_word as u32;
+                }
+            }
+        }
+
+        if index_word as i32 >= batches[batch_index_iter] {
+            n_words_total_vec.push(*n_words_total);
+            n_words_unique_vec.push(*n_words_unique);
+            n_words_total_vec_by_doc.push(n_words_total_by_doc);
+            n_words_unique_vec_by_doc.push(n_words_unique_by_doc);
+            batch_index_iter += 1;
+        }
+    }
+
+    for hashmap in inter_words_hashmaps.iter_mut() {
+        hashmap.remove(&0);
+    }
+
+    Ok((n_words_total_vec_by_doc, n_words_unique_vec_by_doc))
+}
+
 pub fn initializer_word_hashmap_handler(
     words: &HashMap<String, u32>,
 ) -> Result<(Vec<String>, Vec<u32>), Error> {
@@ -144,4 +225,110 @@ pub fn initializer_word_hashmap_handler(
     }
 
     Ok((keys, values))
+}
+
+pub fn copy_interword_to_main(
+    main_interword_hashmaps: &mut Vec<HashMap<u32, u32>>,
+    sub_interword_hashmaps: &Vec<HashMap<u32, u32>>,
+) {
+    for (index_sub_hashmap, sub_hashmap) in sub_interword_hashmaps.iter().enumerate() {
+        for (distance, frequency) in sub_hashmap.iter() {
+            let distance_pointer = main_interword_hashmaps[index_sub_hashmap]
+                .entry(*distance)
+                .or_insert(0);
+            *distance_pointer += frequency;
+        }
+    }
+}
+
+pub fn copy_words_to_main(
+    main_words_hashmap: &mut HashMap<String, u32>,
+    sub_words_hashmap: &HashMap<String, u32>,
+) {
+    for (word, frequency) in sub_words_hashmap.iter() {
+        let count = main_words_hashmap.entry(word.to_string()).or_insert(0);
+        *count += frequency;
+    }
+}
+
+pub fn analyzer_content_opt3(
+    content: String,
+    words: &mut HashMap<String, u32>,
+    words_per_doc: &mut HashMap<String, u32>,
+    ascii_interest: &Vec<u8>,
+    inter_words_hashmaps: &mut Vec<HashMap<u32, u32>>,
+    last_positions: &mut Vec<u32>,
+    inter_words_strings: &Vec<String>,
+    n_words_total: &mut u32,
+    n_words_unique: &mut u32,
+    n_words_total_vec: &mut Vec<u32>,
+    n_words_unique_vec: &mut Vec<u32>,
+) {
+    let len_words = content.split_whitespace().count() as i32 - 1;
+    let mut batches: Vec<i32> = Vec::new();
+    let mut batch_index_iter = 0;
+    for i in 1..=10 {
+        batches.push((len_words * i) / 10);
+    }
+    // batches.insert(0, 1); este dbe iniciarse desde afuera
+    let mut n_words_total_by_doc: u32 = 0;
+    let mut n_words_unique_by_doc: u32 = 0;
+    let mut n_words_total_vec_by_doc: Vec<u32> = Vec::new();
+    let mut n_words_unique_vec_by_doc: Vec<u32> = Vec::new();
+
+    for (index_word, word) in content.split_whitespace().enumerate() {
+        if is_ascii_valid(word, ascii_interest).unwrap() {
+            let count_word_per_doc = words_per_doc.entry(word.to_string()).or_insert(0);
+            if *count_word_per_doc == 0 {
+                n_words_unique_by_doc += 1;
+            }
+            *count_word_per_doc += 1;
+
+            let count = words.entry(word.to_string()).or_insert(0);
+            if *count == 0 {
+                *n_words_unique += 1;
+            }
+            *count += 1;
+
+            *n_words_total += 1;
+            n_words_total_by_doc += 1;
+
+            for (index_input_strings, inter_word_string) in inter_words_strings.iter().enumerate() {
+                if word == inter_word_string {
+                    if inter_words_hashmaps[index_input_strings].is_empty() {
+                        inter_words_hashmaps[index_input_strings]
+                            .entry(0)
+                            .or_insert(0);
+
+                        last_positions[index_input_strings] = index_word as u32;
+                        continue;
+                    }
+                    let token_distance =
+                        index_word as u32 - 1 - last_positions[index_input_strings];
+                    let count_distance = inter_words_hashmaps[index_input_strings]
+                        .entry(token_distance)
+                        .or_insert(0);
+                    *count_distance += 1;
+
+                    last_positions[index_input_strings] = index_word as u32;
+                }
+            }
+        }
+
+        if index_word as i32 >= batches[batch_index_iter] {
+            n_words_total_vec.push(*n_words_total);
+            n_words_unique_vec.push(*n_words_unique);
+            n_words_total_vec_by_doc.push(n_words_total_by_doc);
+            n_words_unique_vec_by_doc.push(n_words_unique_by_doc);
+            batch_index_iter += 1;
+        }
+    }
+
+    for position in last_positions.iter_mut() {
+        *position = 0;
+    }
+
+    for hashmap in inter_words_hashmaps.iter_mut() {
+        hashmap.remove(&0);
+    }
 }

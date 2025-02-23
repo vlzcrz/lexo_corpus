@@ -11,7 +11,10 @@ use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use crate::modules::{
     cli_handlers::clear_screen,
     file_handlers::{document_extract_content, extract_csv_labeled_data, get_files_from_folder},
-    lexical_analisis::{create_inter_words, create_inter_words_differ, input_inter_words},
+    lexical_analisis::{
+        analyzer_content_dataset_opt, analyzer_content_opt3, copy_interword_to_main,
+        copy_words_to_main, create_inter_words, create_inter_words_differ, input_inter_words,
+    },
     plot_handlers::{
         lineplot_alpha_year, means_hashmap_to_vectors, plot_heaps_law, plot_heat_map, plot_zipf_law,
     },
@@ -203,10 +206,12 @@ pub fn option_two() {
     let started = Instant::now();
     let folder_warehouse = format!("./{}", file_name_dataset);
     let folder_warehouse_data = format!("./{}/data", &file_name_dataset);
+
     let folder_warehouse_plot = format!("./{}/plot", &file_name_dataset);
     let folder_warehouse_exist = fs::exists(&folder_warehouse).unwrap();
     let folder_warehouse_data_exist = fs::exists(&folder_warehouse_data).unwrap();
     let folder_warehouse_plot_exist = fs::exists(&folder_warehouse_plot).unwrap();
+
     if !folder_warehouse_exist {
         fs::create_dir(&folder_warehouse).unwrap();
     }
@@ -230,6 +235,15 @@ pub fn option_two() {
         })
         .progress_chars("#>-"),
     );
+    let mut general_words_unique_hasmamp: HashMap<String, u32> = HashMap::new();
+    let mut general_words_hashmaps: HashMap<String, u32> = HashMap::new();
+    let (mut general_inter_words_hashmaps, _) =
+        create_inter_words_differ(&inter_words_strings).unwrap();
+    let mut general_n_words_vec: Vec<u32> = Vec::new();
+    let mut general_n_words_unique_vec: Vec<u32> = Vec::new();
+    let mut total_words: u32 = 0;
+    let mut total_unique_words: u32 = 0;
+
     for (file, year) in csv_content.iter() {
         let (file_name, file_extension) = file.split_once(".").unwrap();
         let mut words: HashMap<String, u32> = HashMap::new();
@@ -241,15 +255,22 @@ pub fn option_two() {
                 .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], ""),
             Err(_) => String::new(),
         };
-        let (n_words_total_vec, n_words_unique_vec) = analyzer_content(
+
+        let (n_words_total_vec, n_words_unique_vec) = analyzer_content_dataset_opt(
             content,
             &mut words,
+            &mut general_words_unique_hasmamp,
             &ascii_interest,
             &mut inter_words_hashmaps,
             &mut last_positions,
             &inter_words_strings,
+            &mut total_words,
+            &mut total_unique_words,
+            &mut general_n_words_vec,
+            &mut general_n_words_unique_vec,
         )
         .unwrap();
+
         let (mut keys, mut values) = initializer_word_hashmap_handler(&words).unwrap();
         if keys.is_empty() && values.is_empty() {
             continue;
@@ -264,6 +285,9 @@ pub fn option_two() {
             &folder_warehouse_data,
         )
         .unwrap();
+
+        copy_words_to_main(&mut general_words_hashmaps, &words);
+        copy_interword_to_main(&mut general_inter_words_hashmaps, &inter_words_hashmaps);
 
         let (log_ranking, log_values) = apply_to_log10(values).unwrap();
         let parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
@@ -314,6 +338,73 @@ pub fn option_two() {
         "Alpha",
         &x_values,
         &y_values,
+        &folder_warehouse_plot,
+        &file_name_dataset,
+    );
+
+    let (mut keys, mut values) = initializer_word_hashmap_handler(&general_words_hashmaps).unwrap();
+    if keys.is_empty() && values.is_empty() {
+        return;
+    }
+
+    get_zipf_law_results(&mut keys, &mut values);
+    create_csv_ordered(&keys, &values, &file_name_dataset, &folder_warehouse_data);
+    let (vec_distance, vec_frequency) = create_csv_inter_words(
+        &file_name_dataset,
+        &general_inter_words_hashmaps,
+        &inter_words_strings,
+        &folder_warehouse_data,
+    )
+    .unwrap();
+
+    let (log_ranking, log_values) = apply_to_log10(values).unwrap();
+    let parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
+
+    plot_heat_map(
+        "Frequency distribution of inter word's distance",
+        "Distance",
+        "Inter Word",
+        &vec_distance,
+        &vec_frequency,
+        &inter_words_strings,
+        &folder_warehouse_plot,
+        &file_name_dataset,
+        &file_extension_dataset,
+    );
+
+    plot_zipf_law(
+        &log_ranking,
+        &log_values,
+        &parameters,
+        &folder_warehouse_plot,
+        &file_name_dataset,
+    );
+
+    println!("{:?}", general_n_words_vec);
+    println!("{:?}", general_n_words_unique_vec);
+
+    // Filtro para visualización mas apropiada de la scatterplot
+    //let n_words_total = general_n_words_vec[general_n_words_vec.len() - 1];
+
+    let mut doc_heap_x_values: Vec<u32> = Vec::new();
+    let mut doc_heap_y_values: Vec<u32> = Vec::new();
+    let mut tresholds: Vec<u32> = Vec::new();
+    for i in 0..=40 {
+        let treshold = (i * (total_words)) / 40;
+        tresholds.push(treshold);
+    }
+    let mut treshold_index = 0;
+    for (index, n_value) in general_n_words_vec.iter().enumerate() {
+        if n_value >= &tresholds[treshold_index] {
+            doc_heap_x_values.push(*n_value);
+            doc_heap_y_values.push(general_n_words_unique_vec[index]);
+            treshold_index += 1;
+        }
+    }
+
+    plot_heaps_law(
+        &doc_heap_x_values,
+        &doc_heap_y_values,
         &folder_warehouse_plot,
         &file_name_dataset,
     );
@@ -370,8 +461,17 @@ pub fn option_three() {
     let csv_content =
         extract_csv_labeled_data(&file_name_dataset, &file_extension_dataset).unwrap();
 
+    let mut words: HashMap<String, u32> = HashMap::new();
     let mut year_alphas_hashmaps: HashMap<i32, Vec<f64>> = HashMap::new();
     let inter_words_strings = input_inter_words().unwrap();
+    let (mut inter_words_hashmaps, mut last_positions) =
+        create_inter_words_differ(&inter_words_strings).unwrap();
+
+    let mut n_words_total: u32 = 0;
+    let mut n_words_unique: u32 = 0;
+    let mut n_words_total_vec: Vec<u32> = Vec::new();
+    let mut n_words_unique_vec: Vec<u32> = Vec::new();
+
     let mut ascii_interest: Vec<u8> = (97..121).collect();
     ascii_interest.push(39);
     let mut ascii_interest_numbers: Vec<u8> = (48..57).collect();
@@ -420,27 +520,42 @@ pub fn option_three() {
     );
     // BLOQUE 3-1
 
-    let mut words: HashMap<String, u32> = HashMap::new();
-
     for (file, year) in csv_content.iter() {
         let (file_name, file_extension) = file.split_once(".").unwrap();
-        let (mut inter_words_hashmaps, mut last_positions) =
-            create_inter_words_differ(&inter_words_strings).unwrap();
+        let mut words_per_doc: HashMap<String, u32> = HashMap::new();
         let content = match document_extract_content(&file_name, &file_extension) {
             Ok(content) => content
                 .to_lowercase()
                 .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], ""),
             Err(_) => String::new(),
         };
-        analyzer_content(
+        analyzer_content_opt3(
             content,
             &mut words,
+            &mut words_per_doc,
             &ascii_interest,
             &mut inter_words_hashmaps,
             &mut last_positions,
             &inter_words_strings,
-        )
-        .unwrap();
+            &mut n_words_total,
+            &mut n_words_unique,
+            &mut n_words_total_vec,
+            &mut n_words_unique_vec,
+        );
+
+        let (mut keys, mut values) = initializer_word_hashmap_handler(&words_per_doc).unwrap();
+        if keys.is_empty() && values.is_empty() {
+            return;
+        }
+        get_zipf_law_results(&mut keys, &mut values);
+
+        let (log_ranking, log_values) = apply_to_log10(values).unwrap();
+
+        let parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
+        let alphas = year_alphas_hashmaps
+            .entry(*year)
+            .or_insert(vec![parameters[1].abs()]);
+        alphas.push(parameters[1].abs());
 
         let new = min(loading_value + 1, total_load_size);
         loading_value = new;
@@ -464,6 +579,65 @@ pub fn option_three() {
         &log_ranking,
         &log_values,
         &parameters,
+        &folder_warehouse_plot,
+        &file_name_dataset,
+    );
+
+    let (vec_distance, vec_frequency) = create_csv_inter_words(
+        &file_name_dataset,
+        &inter_words_hashmaps,
+        &inter_words_strings,
+        &folder_warehouse_data,
+    )
+    .unwrap();
+
+    plot_heat_map(
+        "Frequency distribution of inter word's distance",
+        "Distance",
+        "Inter Word",
+        &vec_distance,
+        &vec_frequency,
+        &inter_words_strings,
+        &folder_warehouse_plot,
+        &file_name_dataset,
+        &file_extension_dataset,
+    );
+
+    let (x_values, y_values) = means_hashmap_to_vectors(year_alphas_hashmaps).unwrap();
+
+    lineplot_alpha_year(
+        "Alpha variation",
+        "Year",
+        "Alpha",
+        &x_values,
+        &y_values,
+        &folder_warehouse_plot,
+        &file_name_dataset,
+    );
+
+    // Filtro para visualización mas apropiada de la scatterplot
+    let mut doc_heap_x_values: Vec<u32> = Vec::new();
+    let mut doc_heap_y_values: Vec<u32> = Vec::new();
+    let mut tresholds: Vec<u32> = Vec::new();
+    for i in 0..=40 {
+        let treshold = (i * (n_words_total)) / 40;
+        tresholds.push(treshold);
+    }
+    let mut treshold_index = 0;
+    for (index, n_value) in n_words_total_vec.iter().enumerate() {
+        if n_value >= &tresholds[treshold_index] {
+            doc_heap_x_values.push(*n_value);
+            doc_heap_y_values.push(n_words_unique_vec[index]);
+            treshold_index += 1;
+        }
+    }
+
+    println!("{:?}", n_words_total_vec);
+    println!("{:?}", n_words_unique_vec);
+
+    plot_heaps_law(
+        &doc_heap_x_values,
+        &doc_heap_y_values,
         &folder_warehouse_plot,
         &file_name_dataset,
     );

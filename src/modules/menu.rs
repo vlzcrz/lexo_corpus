@@ -13,9 +13,8 @@ pub fn main_menu() {
             "
 [LEXO CORPUS PR-CLI] Menu principal
 1.- Analizar documento de manera individual.
-2.- Analizar lote de documentos de manera individual. 
-3.- Analizar lote de documentos de manera conjunta. 
-4.- Limpiar carpeta.
+2.- Analizar lote de documentos etiquetados (csv). 
+3.- Limpiar carpeta.
 0.- Salir.
         "
         );

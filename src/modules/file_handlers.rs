@@ -55,14 +55,66 @@ pub fn create_csv_ordered(
     file_name: &str,
     folder_name: &str,
 ) {
-    let file_path_nall = format!("{}/{}.csv", folder_name, file_name);
-    let file_path_n50 = format!("{}/{}-n50.csv", folder_name, file_name);
+    let folder_total_words = format!("{}/word-counts", folder_name);
+    let folder_total_words_exist = fs::exists(&folder_total_words).unwrap();
+    if !folder_total_words_exist {
+        fs::create_dir(&folder_total_words).unwrap();
+    }
+
+    let folder_n50_words = format!("{}/words-n50", folder_name);
+    let folder_n50_words_exist = fs::exists(&folder_n50_words).unwrap();
+    if !folder_n50_words_exist {
+        fs::create_dir(&folder_n50_words).unwrap();
+    }
+    let file_path_nall = format!("{}/{}.csv", folder_total_words, file_name);
+    let file_path_n50 = format!("{}/{}-n50.csv", folder_n50_words, file_name);
     let mut word_list = csv::Writer::from_path(file_path_nall).unwrap();
     let mut word_list_n50 = csv::Writer::from_path(file_path_n50).unwrap();
 
     //Headers
-    word_list.write_record(["Words", "Frequency"]).unwrap();
-    word_list_n50.write_record(["Words", "Frequency"]).unwrap();
+    word_list.write_record(["Word", "Frequency"]).unwrap();
+    word_list_n50.write_record(["Word", "Frequency"]).unwrap();
+
+    for (index, word) in keys.iter().enumerate() {
+        word_list
+            .write_record([word, &values[index].to_string()])
+            .unwrap();
+    }
+    word_list.flush().unwrap();
+
+    for index in 0..50 {
+        word_list_n50
+            .write_record([keys[index].to_string(), values[index].to_string()])
+            .unwrap();
+    }
+    word_list_n50.flush().unwrap();
+}
+
+pub fn create_csv_ordered_dataset(
+    keys: &Vec<String>,
+    values: &Vec<u32>,
+    file_name: &str,
+    folder_name: &str,
+) {
+    let folder_total_words = format!("{}/data/word-counts", folder_name);
+    let folder_total_words_exist = fs::exists(&folder_total_words).unwrap();
+    if !folder_total_words_exist {
+        fs::create_dir(&folder_total_words).unwrap();
+    }
+
+    let folder_n50_words = format!("{}/data/words-n50", folder_name);
+    let folder_n50_words_exist = fs::exists(&folder_n50_words).unwrap();
+    if !folder_n50_words_exist {
+        fs::create_dir(&folder_n50_words).unwrap();
+    }
+    let file_path_nall = format!("{}/{}.csv", folder_total_words, file_name);
+    let file_path_n50 = format!("{}/{}-n50.csv", folder_n50_words, file_name);
+    let mut word_list = csv::Writer::from_path(file_path_nall).unwrap();
+    let mut word_list_n50 = csv::Writer::from_path(file_path_n50).unwrap();
+
+    //Headers
+    word_list.write_record(["Word", "Frequency"]).unwrap();
+    word_list_n50.write_record(["Word", "Frequency"]).unwrap();
 
     for (index, word) in keys.iter().enumerate() {
         word_list
@@ -85,6 +137,13 @@ pub fn create_csv_inter_words(
     inter_words_strings: &Vec<String>,
     folder_name: &str,
 ) -> Result<(Vec<Vec<u32>>, Vec<Vec<u32>>), Error> {
+    for inter_word_string in inter_words_strings.iter() {
+        let folder_inter_word = format!("{}/{}", folder_name, inter_word_string);
+        let folder_inter_word_exists = fs::exists(&folder_inter_word).unwrap();
+        if !folder_inter_word_exists {
+            fs::create_dir(folder_inter_word).unwrap();
+        }
+    }
     let mut vec_distance: Vec<Vec<u32>> = Vec::new();
     let mut vec_frequency: Vec<Vec<u32>> = Vec::new();
 
@@ -92,13 +151,13 @@ pub fn create_csv_inter_words(
         let mut distances: Vec<u32> = Vec::new();
         let mut frecuencies: Vec<u32> = Vec::new();
         let inter_word_path = format!(
-            "{}/{}-interword-{}.csv",
-            folder_name, file_name, inter_words_strings[index]
+            "{}/{}/{}-interword-{}.csv",
+            folder_name, inter_words_strings[index], file_name, inter_words_strings[index]
         );
         let mut inter_word_list = csv::Writer::from_path(inter_word_path).unwrap();
         // Header
         inter_word_list
-            .write_record(["Words", "Frequency"])
+            .write_record(["Distance", "Frequency"])
             .unwrap();
 
         for (token_distance, frequency) in inter_word_hashmap.iter() {

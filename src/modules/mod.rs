@@ -1,4 +1,5 @@
 pub mod cli_handlers;
+pub mod csv_handlers;
 pub mod file_handlers;
 pub mod lexical_analisis;
 pub mod lexo_corpus;

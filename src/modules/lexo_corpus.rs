@@ -10,6 +10,7 @@ use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 
 use crate::modules::{
     cli_handlers::clear_screen,
+    exception_handlers::AnalysisError,
     file_handlers::{document_extract_content, extract_csv_labeled_data, get_files_from_folder},
     lexical_analisis::{
         analyzer_content_dataset_opt, analyzer_content_opt3, copy_interword_to_main,
@@ -27,7 +28,7 @@ use super::{
     zipfs_handlers::{apply_to_log10, get_zipf_law_results},
 };
 
-pub fn option_one() {
+pub fn option_one() -> Result<(), AnalysisError> {
     // Directorio donde se encuentran los pdf
     //let base_path = String::from("books-pdf/");
     // Variable de salida para cuando se ingresa un pdf correcto
@@ -42,8 +43,13 @@ pub fn option_one() {
     // HashMap para guardar las palabras encontradas dentro del texto junto con su cantidad de repeticiones
     let mut words: HashMap<String, u32> = HashMap::new();
     // HashMap para guardar las palabras inter-word de interes el documento
-    let (mut inter_words_hashmaps, mut last_positions, inter_words_strings) =
-        create_inter_words().unwrap();
+    let (mut inter_words_hashmaps, mut last_positions, inter_words_strings) = create_inter_words()
+        .map_err(|e| {
+            AnalysisError::ProcessingError(format!(
+                "Error al crear los interwords de interes: {}",
+                e
+            ))
+        })?;
 
     let default_folder_data = "books-data";
     let default_folder_plot = "books-plot";
@@ -52,32 +58,43 @@ pub fn option_one() {
     let mut file_extension = String::new();
 
     while !did_read {
-        clear_screen();
+        //clear_screen();
         println!("Ingresa el nombre del archivo con su extension .txt ó .pdf (Presione '0' para cancelar)");
-        io::stdin().read_line(&mut file_path_input).unwrap();
+        io::stdin()
+            .read_line(&mut file_path_input)
+            .map_err(|e| AnalysisError::IoError(e))?;
 
         if file_path_input.trim() == "0" {
-            return;
+            return Ok(());
         }
 
-        let (name_f, extension_f) = file_path_input.split_once(".").unwrap();
+        let (name_f, extension_f) = file_path_input.split_once(".").ok_or_else(|| {
+            AnalysisError::ParseError("Nombre de archivo ó extensión no identificable".to_string())
+        })?;
+
         file_name = name_f.trim().to_string();
         file_extension = extension_f.trim().to_string();
-        content = match document_extract_content(&file_name, &file_extension) {
-            Ok(content) => {
+
+        match document_extract_content(&file_name, &file_extension) {
+            Ok(extracted_content) => {
                 did_read = true;
-                content
+                content = extracted_content
                     .to_lowercase()
                     .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
             }
-            Err(_) => {
-                file_path_input = String::new();
-                String::new()
+            Err(e) => {
+                eprintln!(
+                    "Error al leer el archivo: {}. Por favor, intente nuevamente.",
+                    e
+                );
+                continue;
             }
         };
     }
+
     let started = Instant::now();
-    clear_screen();
+    //clear_screen();
+
     println!(
         "# Inicio del proceso de extracción y analisis del documento: {}.{} ...",
         file_name, file_extension
@@ -90,11 +107,13 @@ pub fn option_one() {
         &mut last_positions,
         &inter_words_strings,
     )
-    .unwrap();
+    .map_err(|e| {
+        AnalysisError::ProcessingError(format!("Error de analisis del contenido {}", e))
+    })?;
 
     let (mut keys, mut values) = initializer_word_hashmap_handler(&words).unwrap();
     if keys.is_empty() && values.is_empty() {
-        return;
+        return Err(AnalysisError::EmptyResultError);
     }
     println!("# Finalizado.");
     println!("# Inicio de procesamiento del contenido...");
@@ -106,7 +125,12 @@ pub fn option_one() {
         &inter_words_strings,
         &default_folder_data,
     )
-    .unwrap();
+    .map_err(|e| {
+        AnalysisError::ProcessingError(format!(
+            "Error en la generación de los csv inter words {}",
+            e
+        ))
+    })?;
     //let log_n_words_total = vec_apply_to_log10(&n_words_total_vec).unwrap();
     //let log_n_words_unique = vec_apply_to_log10(&n_words_unique_vec).unwrap();
 
@@ -129,8 +153,12 @@ pub fn option_one() {
         &file_name,
     );
 
-    let (log_ranking, log_values) = apply_to_log10(values).unwrap();
-    let zipfs_parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
+    let (log_ranking, log_values) = apply_to_log10(values).map_err(|e| {
+        AnalysisError::ParseError(format!("Error en el cálculo logarítmico en base 10 {}", e))
+    })?;
+    let zipfs_parameters = linear_regression_x1(&log_ranking, &log_values).map_err(|e| {
+        AnalysisError::ProcessingError(format!("Error en la regresión lineal {}", e))
+    })?;
 
     plot_zipf_law(
         &log_ranking,
@@ -142,9 +170,10 @@ pub fn option_one() {
 
     println!("# Finalizado.");
     println!("Ejecutado en {:.3?}", started.elapsed());
+    Ok(())
 }
 
-pub fn option_two() {
+pub fn option_two() -> Result<(), AnalysisError> {
     let mut input = String::new();
     let mut valid_input = false;
     let mut file_name_dataset = String::new();
@@ -152,15 +181,22 @@ pub fn option_two() {
     while !valid_input {
         clear_screen();
         println!("Seleccione un data label (csv) para iniciar el lote de procesamiento de textos. (Presione '0' para cancelar)");
-        let labeled_data_files = get_files_from_folder("labeled-data").unwrap();
+        let labeled_data_files = get_files_from_folder("labeled-data").map_err(|e| {
+            AnalysisError::LectureCsvDatasetError(format!(
+                "Error en la lectura del dataset (csv) {}",
+                e
+            ))
+        })?;
         let max = labeled_data_files.len() as u16;
         for (index, (file_name, file_extension)) in labeled_data_files.iter().enumerate() {
             println!("{}.- {}.{}", index + 1, file_name, file_extension);
         }
-        io::stdin().read_line(&mut input).unwrap();
+        io::stdin()
+            .read_line(&mut input)
+            .map_err(|e| AnalysisError::IoError(e))?;
 
         if input.trim() == "0" {
-            return;
+            return Ok(());
         }
 
         let parsed_input: u16 = match input.trim().parse() {
@@ -185,11 +221,13 @@ pub fn option_two() {
         }
     }
 
-    let csv_content =
-        extract_csv_labeled_data(&file_name_dataset, &file_extension_dataset).unwrap();
+    let csv_content = extract_csv_labeled_data(&file_name_dataset, &file_extension_dataset)
+        .map_err(|e| {
+            AnalysisError::ProcessingError(format!("Error en el contenido del dataset (csv) {}", e))
+        })?;
 
     let mut year_alphas_hashmaps: HashMap<i32, Vec<f64>> = HashMap::new();
-    let inter_words_strings = input_inter_words().unwrap();
+    let inter_words_strings = input_inter_words().map_err(|e| AnalysisError::IoError(e))?;
     let mut ascii_interest: Vec<u8> = (97..121).collect();
     ascii_interest.push(39);
     let mut ascii_interest_numbers: Vec<u8> = (48..57).collect();
@@ -208,9 +246,24 @@ pub fn option_two() {
     let folder_warehouse_data = format!("./{}/data", &file_name_dataset);
 
     let folder_warehouse_plot = format!("./{}/plot", &file_name_dataset);
-    let folder_warehouse_exist = fs::exists(&folder_warehouse).unwrap();
-    let folder_warehouse_data_exist = fs::exists(&folder_warehouse_data).unwrap();
-    let folder_warehouse_plot_exist = fs::exists(&folder_warehouse_plot).unwrap();
+    let folder_warehouse_exist = fs::exists(&folder_warehouse).map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
+            e
+        ))
+    })?;
+    let folder_warehouse_data_exist = fs::exists(&folder_warehouse_data).map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
+            e
+        ))
+    })?;
+    let folder_warehouse_plot_exist = fs::exists(&folder_warehouse_plot).map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
+            e
+        ))
+    })?;
 
     if !folder_warehouse_exist {
         fs::create_dir(&folder_warehouse).unwrap();
@@ -237,18 +290,43 @@ pub fn option_two() {
     );
     let mut general_words_unique_hasmamp: HashMap<String, u32> = HashMap::new();
     let mut general_words_hashmaps: HashMap<String, u32> = HashMap::new();
-    let (mut general_inter_words_hashmaps, _) =
-        create_inter_words_differ(&inter_words_strings).unwrap();
+    let (mut general_inter_words_hashmaps, _) = create_inter_words_differ(&inter_words_strings)
+        .map_err(|e| {
+            AnalysisError::ProcessingError(format!(
+                "Error al inicializar el hashmap general interwords de interes  (automatizada): {}",
+                e
+            ))
+        })?;
     let mut general_n_words_vec: Vec<u32> = Vec::new();
     let mut general_n_words_unique_vec: Vec<u32> = Vec::new();
     let mut total_words: u32 = 0;
     let mut total_unique_words: u32 = 0;
 
     for (file, year) in csv_content.iter() {
-        let (file_name, file_extension) = file.split_once(".").unwrap();
+        let (file_name, file_extension) = match file.split_once(".") {
+            Some((file_name_extract, file_extension_extract)) => {
+                (file_name_extract, file_extension_extract)
+            }
+            None => {
+                eprintln!(
+                    "Error en fila del dataset, nombre de archivo ó extensión no identificable [Fila: file:{}, year:{}]",
+                    file, year
+                );
+                AnalysisError::LectureCsvDatasetError(format!(
+                    "Error en la lectura del csv, fila contiene campos invalidos"
+                ));
+                continue;
+            }
+        };
+
         let mut words: HashMap<String, u32> = HashMap::new();
         let (mut inter_words_hashmaps, mut last_positions) =
-            create_inter_words_differ(&inter_words_strings).unwrap();
+            create_inter_words_differ(&inter_words_strings).map_err(|e| {
+                AnalysisError::ProcessingError(format!(
+                    "Error al inicializar el hashmap específica interwords de interes  (automatizada): {}",
+                    e
+                ))
+            })?;
         let content = match document_extract_content(&file_name, &file_extension) {
             Ok(content) => content
                 .to_lowercase()
@@ -271,7 +349,12 @@ pub fn option_two() {
         )
         .unwrap();
 
-        let (mut keys, mut values) = initializer_word_hashmap_handler(&words).unwrap();
+        let (mut keys, mut values) = initializer_word_hashmap_handler(&words).map_err(|e| {
+            AnalysisError::ProcessingError(format!(
+                "Error al inicializar los valores zipf para el documento: {}, {}",
+                file_name, e
+            ))
+        })?;
         if keys.is_empty() && values.is_empty() {
             continue;
         }
@@ -284,13 +367,28 @@ pub fn option_two() {
             &inter_words_strings,
             &folder_warehouse_data,
         )
-        .unwrap();
+        .map_err(|e| {
+            AnalysisError::ProcessingError(format!(
+                "Error en la generación de los csv inter words para el documento: {}, {}",
+                file_name, e
+            ))
+        })?;
 
         copy_words_to_main(&mut general_words_hashmaps, &words);
         copy_interword_to_main(&mut general_inter_words_hashmaps, &inter_words_hashmaps);
 
-        let (log_ranking, log_values) = apply_to_log10(values).unwrap();
-        let parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
+        let (log_ranking, log_values) = apply_to_log10(values).map_err(|e| {
+            AnalysisError::ParseError(format!(
+                "Error en el cálculo logarítmico en base 10 para el documento: {}, {}",
+                file_name, e
+            ))
+        })?;
+        let parameters = linear_regression_x1(&log_ranking, &log_values).map_err(|e| {
+            AnalysisError::ProcessingError(format!(
+                "Error en el cálculo de la regresión lineal para el documento: {}, {}",
+                file_name, e
+            ))
+        })?;
 
         plot_heat_map(
             "Frequency distribution of inter word's distance",
@@ -330,7 +428,12 @@ pub fn option_two() {
     }
     pb.finish_with_message("Carga completada.");
     println!("# Inicio de elaboración de Grafico alpha...");
-    let (x_values, y_values) = means_hashmap_to_vectors(year_alphas_hashmaps).unwrap();
+    let (x_values, y_values) = means_hashmap_to_vectors(year_alphas_hashmaps).map_err(|e| {
+        AnalysisError::ParseError(format!(
+            "Error al incializar los valores para el grafico year-alpha {}",
+            e
+        ))
+    })?;
 
     lineplot_alpha_year(
         "Alpha variation",
@@ -344,7 +447,7 @@ pub fn option_two() {
 
     let (mut keys, mut values) = initializer_word_hashmap_handler(&general_words_hashmaps).unwrap();
     if keys.is_empty() && values.is_empty() {
-        return;
+        return Err(AnalysisError::EmptyResultError);
     }
 
     get_zipf_law_results(&mut keys, &mut values);
@@ -355,10 +458,25 @@ pub fn option_two() {
         &inter_words_strings,
         &folder_warehouse_data,
     )
-    .unwrap();
+    .map_err(|e| {
+        AnalysisError::ProcessingError(format!(
+            "Error en la generación de los csv inter words (general) {}",
+            e
+        ))
+    })?;
 
-    let (log_ranking, log_values) = apply_to_log10(values).unwrap();
-    let parameters = linear_regression_x1(&log_ranking, &log_values).unwrap();
+    let (log_ranking, log_values) = apply_to_log10(values).map_err(|e| {
+        AnalysisError::ParseError(format!(
+            "Error en el cálculo logarítmico en base 10 (general): {}",
+            e
+        ))
+    })?;
+    let parameters = linear_regression_x1(&log_ranking, &log_values).map_err(|e| {
+        AnalysisError::ProcessingError(format!(
+            "Error en el cálculo de la regresión lineal (general) {}",
+            e
+        ))
+    })?;
 
     plot_heat_map(
         "Frequency distribution of inter word's distance",
@@ -380,25 +498,22 @@ pub fn option_two() {
         &file_name_dataset,
     );
 
-    println!("{:?}", general_n_words_vec);
-    println!("{:?}", general_n_words_unique_vec);
-
     // Filtro para visualización mas apropiada de la scatterplot
     //let n_words_total = general_n_words_vec[general_n_words_vec.len() - 1];
 
     let mut doc_heap_x_values: Vec<u32> = Vec::new();
     let mut doc_heap_y_values: Vec<u32> = Vec::new();
-    let mut tresholds: Vec<u32> = Vec::new();
+    let mut thresholds: Vec<u32> = Vec::new();
     for i in 0..=40 {
-        let treshold = (i * (total_words)) / 40;
-        tresholds.push(treshold);
+        let threshold = (i * (total_words)) / 40;
+        thresholds.push(threshold);
     }
-    let mut treshold_index = 0;
+    let mut threshold_index = 0;
     for (index, n_value) in general_n_words_vec.iter().enumerate() {
-        if n_value >= &tresholds[treshold_index] {
+        if n_value >= &thresholds[threshold_index] {
             doc_heap_x_values.push(*n_value);
             doc_heap_y_values.push(general_n_words_unique_vec[index]);
-            treshold_index += 1;
+            threshold_index += 1;
         }
     }
 
@@ -411,6 +526,7 @@ pub fn option_two() {
 
     println!("# Finalizado...");
     println!("Ejecutado en {:.3?}", started.elapsed());
+    Ok(())
 }
 
 pub fn option_three() {

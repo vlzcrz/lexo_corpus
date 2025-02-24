@@ -6,6 +6,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use cli_table::{format::Justify, Cell, CellStruct, Style, Table};
+use crossterm::style::Stylize;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 
 use crate::modules::{
@@ -178,6 +180,9 @@ pub fn option_two() -> Result<(), AnalysisError> {
     let mut valid_input = false;
     let mut file_name_dataset = String::new();
     let mut file_extension_dataset = String::new();
+
+    let mut processed_file_status_table: Vec<Vec<CellStruct>> = Vec::new();
+
     while !valid_input {
         clear_screen();
         println!("Seleccione un data label (csv) para iniciar el lote de procesamiento de textos. (Presione '0' para cancelar)");
@@ -235,17 +240,15 @@ pub fn option_two() -> Result<(), AnalysisError> {
 
     let mut loading_value = 0;
     let total_load_size = csv_content.len() as u64;
-    clear_screen();
-    println!(
-        "Iniciando procesamiento para el dataset: {}.{}",
-        file_name_dataset, file_extension_dataset
-    );
 
     let started = Instant::now();
     let folder_warehouse = format!("./{}", file_name_dataset);
     let folder_warehouse_data = format!("./{}/data", &file_name_dataset);
-
     let folder_warehouse_plot = format!("./{}/plot", &file_name_dataset);
+    let folder_warehouse_zipf_plot = format!("{}/zipfs", &folder_warehouse_plot);
+    let folder_warehouse_heaps_plot = format!("{}/heaps", &folder_warehouse_plot);
+    let folder_warehouse_heatmap_plot = format!("{}/heatmaps", &folder_warehouse_plot);
+
     let folder_warehouse_exist = fs::exists(&folder_warehouse).map_err(|e| {
         AnalysisError::FileSystemOperationError(format!(
             "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
@@ -265,6 +268,30 @@ pub fn option_two() -> Result<(), AnalysisError> {
         ))
     })?;
 
+    let folder_warehouse_zipfs_plot_exist =
+        fs::exists(&folder_warehouse_zipf_plot).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!(
+                "Error al verificar la carpeta zipf dentro de plot, la ruta no existe ó permisos insuficientes {}",
+                e
+            ))
+        })?;
+
+    let folder_warehouse_heaps_plot_exist =
+        fs::exists(&folder_warehouse_heaps_plot).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!(
+                "Error al verificar la carpeta heaps dentro de plot, la ruta no existe ó permisos insuficientes {}",
+                e
+            ))
+        })?;
+
+    let folder_warehouse_heatmaps_plot_exist =
+        fs::exists(&folder_warehouse_heatmap_plot).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!(
+                "Error al verificar la carpeta heatmaps dentro de plot, la ruta no existe ó permisos insuficientes {}",
+                e
+            ))
+        })?;
+
     if !folder_warehouse_exist {
         fs::create_dir(&folder_warehouse).unwrap();
     }
@@ -275,6 +302,18 @@ pub fn option_two() -> Result<(), AnalysisError> {
 
     if !folder_warehouse_plot_exist {
         fs::create_dir(&folder_warehouse_plot).unwrap();
+    }
+
+    if !folder_warehouse_zipfs_plot_exist {
+        fs::create_dir(&folder_warehouse_zipf_plot).unwrap();
+    }
+
+    if !folder_warehouse_heaps_plot_exist {
+        fs::create_dir(&folder_warehouse_heaps_plot).unwrap();
+    }
+
+    if !folder_warehouse_heatmaps_plot_exist {
+        fs::create_dir(&folder_warehouse_heatmap_plot).unwrap();
     }
 
     let pb = ProgressBar::new(total_load_size);
@@ -302,19 +341,26 @@ pub fn option_two() -> Result<(), AnalysisError> {
     let mut total_words: u32 = 0;
     let mut total_unique_words: u32 = 0;
 
+    clear_screen();
+    println!(
+        "Iniciando procesamiento para el dataset: {}.{}",
+        file_name_dataset, file_extension_dataset
+    );
+
     for (file, year) in csv_content.iter() {
         let (file_name, file_extension) = match file.split_once(".") {
             Some((file_name_extract, file_extension_extract)) => {
                 (file_name_extract, file_extension_extract)
             }
             None => {
+                let mut processed_file_status: Vec<CellStruct> = Vec::new();
+                processed_file_status.push(file.clone().cell());
+                processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+                processed_file_status_table.push(processed_file_status);
                 eprintln!(
                     "Error en fila del dataset, nombre de archivo ó extensión no identificable [Fila: file:{}, year:{}]",
                     file, year
                 );
-                AnalysisError::LectureCsvDatasetError(format!(
-                    "Error en la lectura del csv, fila contiene campos invalidos"
-                ));
                 continue;
             }
         };
@@ -322,8 +368,13 @@ pub fn option_two() -> Result<(), AnalysisError> {
         let mut words: HashMap<String, u32> = HashMap::new();
         let (mut inter_words_hashmaps, mut last_positions) =
             create_inter_words_differ(&inter_words_strings).map_err(|e| {
+
+                let mut processed_file_status: Vec<CellStruct> = Vec::new();
+                processed_file_status.push(file.clone().cell());
+                processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+                processed_file_status_table.push(processed_file_status);
                 AnalysisError::ProcessingError(format!(
-                    "Error al inicializar el hashmap específica interwords de interes  (automatizada): {}",
+                    "Error al inicializar el hashmap específica interwords de interes (automatizada): {}",
                     e
                 ))
             })?;
@@ -331,7 +382,13 @@ pub fn option_two() -> Result<(), AnalysisError> {
             Ok(content) => content
                 .to_lowercase()
                 .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], ""),
-            Err(_) => String::new(),
+            Err(_) => {
+                let mut processed_file_status: Vec<CellStruct> = Vec::new();
+                processed_file_status.push(file.clone().cell());
+                processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+                processed_file_status_table.push(processed_file_status);
+                String::new()
+            }
         };
 
         let (n_words_total_vec, n_words_unique_vec) = analyzer_content_dataset_opt(
@@ -347,9 +404,19 @@ pub fn option_two() -> Result<(), AnalysisError> {
             &mut general_n_words_vec,
             &mut general_n_words_unique_vec,
         )
-        .unwrap();
+        .map_err(|e| {
+            let mut processed_file_status: Vec<CellStruct> = Vec::new();
+            processed_file_status.push(file.clone().cell());
+            processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+            processed_file_status_table.push(processed_file_status);
+            AnalysisError::ProcessingError(format!("Error con el analisis del documento {}", e))
+        })?;
 
         let (mut keys, mut values) = initializer_word_hashmap_handler(&words).map_err(|e| {
+            let mut processed_file_status: Vec<CellStruct> = Vec::new();
+            processed_file_status.push(file.clone().cell());
+            processed_file_status.push(" Incomplete ".on_yellow().cell().justify(Justify::Right));
+            processed_file_status_table.push(processed_file_status);
             AnalysisError::ProcessingError(format!(
                 "Error al inicializar los valores zipf para el documento: {}, {}",
                 file_name, e
@@ -368,6 +435,10 @@ pub fn option_two() -> Result<(), AnalysisError> {
             &folder_warehouse_data,
         )
         .map_err(|e| {
+            let mut processed_file_status: Vec<CellStruct> = Vec::new();
+            processed_file_status.push(file.clone().cell());
+            processed_file_status.push(" Incomplete ".on_yellow().cell().justify(Justify::Right));
+            processed_file_status_table.push(processed_file_status);
             AnalysisError::ProcessingError(format!(
                 "Error en la generación de los csv inter words para el documento: {}, {}",
                 file_name, e
@@ -397,7 +468,7 @@ pub fn option_two() -> Result<(), AnalysisError> {
             &vec_distance,
             &vec_frequency,
             &inter_words_strings,
-            &folder_warehouse_plot,
+            &folder_warehouse_heatmap_plot,
             &file_name,
             &file_extension,
         );
@@ -406,16 +477,21 @@ pub fn option_two() -> Result<(), AnalysisError> {
             &log_ranking,
             &log_values,
             &parameters,
-            &folder_warehouse_plot,
+            &folder_warehouse_zipf_plot,
             &file_name,
         );
 
         plot_heaps_law(
             &n_words_total_vec,
             &n_words_unique_vec,
-            &folder_warehouse_plot,
+            &folder_warehouse_heaps_plot,
             &file_name,
         );
+
+        let mut processed_file_status: Vec<CellStruct> = Vec::new();
+        processed_file_status.push(file.clone().cell());
+        processed_file_status.push(" Completed ".on_green().cell().justify(Justify::Right));
+        processed_file_status_table.push(processed_file_status);
 
         let alphas = year_alphas_hashmaps
             .entry(*year)
@@ -427,7 +503,7 @@ pub fn option_two() -> Result<(), AnalysisError> {
         pb.set_position(new);
     }
     pb.finish_with_message("Carga completada.");
-    println!("# Inicio de elaboración de Grafico alpha...");
+    println!("# Inicio de elaboración de graficos...");
     let (x_values, y_values) = means_hashmap_to_vectors(year_alphas_hashmaps).map_err(|e| {
         AnalysisError::ParseError(format!(
             "Error al incializar los valores para el grafico year-alpha {}",
@@ -525,7 +601,19 @@ pub fn option_two() -> Result<(), AnalysisError> {
     );
 
     println!("# Finalizado...");
+    println!("# Reporte:");
+    let table = processed_file_status_table
+        .table()
+        .title(vec![
+            "Archivo".cell().bold(true),
+            "Estado".cell().bold(true),
+        ])
+        .bold(true);
+
+    let table_display = table.display().unwrap();
+    println!("{}", table_display);
     println!("Ejecutado en {:.3?}", started.elapsed());
+
     Ok(())
 }
 
@@ -678,7 +766,7 @@ pub fn option_three() {
         pb.set_position(new);
     }
     pb.finish_with_message("Carga completada.");
-    println!("# Inicio de elaboración de Grafico...");
+    println!("# Inicio de elaboración de graficos post-procesamiento...");
 
     let (mut keys, mut values) = initializer_word_hashmap_handler(&words).unwrap();
     if keys.is_empty() && values.is_empty() {

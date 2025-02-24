@@ -15,4 +15,5 @@ lopdf = "0.35.0"
 indicatif = "0.17.11"
 crossterm = "0.28.1"
 owo-colors = "4.2.0"
+cli-table = "0.4.9"
 pyo3 = { version = "0.23.4", features = ["auto-initialize"] }

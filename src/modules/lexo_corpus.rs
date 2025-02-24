@@ -294,6 +294,9 @@ pub fn option_two() -> Result<(), AnalysisError> {
     let mut file_extension_dataset = String::new();
 
     let mut processed_file_status_table: Vec<Vec<CellStruct>> = Vec::new();
+    let mut file_log = create_log_instance().map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!("Error al crear el archivo log. {}", e))
+    })?;
 
     while !valid_input {
         clear_screen();
@@ -345,6 +348,18 @@ pub fn option_two() -> Result<(), AnalysisError> {
 
     let mut year_alphas_hashmaps: HashMap<i32, Vec<f64>> = HashMap::new();
     let inter_words_strings = input_inter_words().map_err(|e| AnalysisError::IoError(e))?;
+    // LOG
+    write_log_result(
+        format!(
+            "\n[Completado] Inter words instanciados correctamente. {:?}",
+            inter_words_strings
+        ),
+        &mut file_log,
+    )
+    .map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+    })?;
+    // ENDLOG
     let mut ascii_interest: Vec<u8> = (97..121).collect();
     ascii_interest.push(39);
     let mut ascii_interest_numbers: Vec<u8> = (48..57).collect();
@@ -444,7 +459,7 @@ pub fn option_two() -> Result<(), AnalysisError> {
     let (mut general_inter_words_hashmaps, _) = create_inter_words_differ(&inter_words_strings)
         .map_err(|e| {
             AnalysisError::ProcessingError(format!(
-                "Error al inicializar el hashmap general interwords de interes  (automatizada): {}",
+                "Error al inicializar el hashmap general interwords de interes (automatizada): {}",
                 e
             ))
         })?;
@@ -458,10 +473,37 @@ pub fn option_two() -> Result<(), AnalysisError> {
         "Iniciando procesamiento para el dataset: {}.{}",
         file_name_dataset, file_extension_dataset
     );
+    // LOG
+    write_log_result(
+        format!(
+            "\n[Completado] Se ha leido el dataset correctamente. {}.{}",
+            file_name_dataset, file_extension_dataset
+        ),
+        &mut file_log,
+    )
+    .map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+    })?;
+    // ENDLOG
 
     for (file, year) in csv_content.iter() {
         let (file_name, file_extension) = match file.split_once(".") {
             Some((file_name_extract, file_extension_extract)) => {
+                // LOG
+                write_log_result(
+                    format!(
+                        "\n[Completado] Se ha leido la fila sin problemas. [Fila: file:{}, year:{}]. ",
+                        file, year
+                    ),
+                    &mut file_log,
+                )
+                .map_err(|e| {
+                    AnalysisError::FileSystemOperationError(format!(
+                        "Error al escribir logs': {}",
+                        e
+                    ))
+                })?;
+                // ENDLOG
                 (file_name_extract, file_extension_extract)
             }
             None => {
@@ -469,6 +511,22 @@ pub fn option_two() -> Result<(), AnalysisError> {
                 processed_file_status.push(file.clone().cell());
                 processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
                 processed_file_status_table.push(processed_file_status);
+
+                // LOG
+                write_log_result(
+                    format!(
+                        "\n[Error] Error en fila del dataset, nombre de archivo ó extensión no identificable [Fila: file:{}, year:{}]. ",
+                        file, year
+                    ),
+                    &mut file_log,
+                )
+                .map_err(|e| {
+                    AnalysisError::FileSystemOperationError(format!(
+                        "Error al escribir logs': {}",
+                        e
+                    ))
+                })?;
+                // ENDLOG
                 eprintln!(
                     "Error en fila del dataset, nombre de archivo ó extensión no identificable [Fila: file:{}, year:{}]",
                     file, year
@@ -491,10 +549,42 @@ pub fn option_two() -> Result<(), AnalysisError> {
                 ))
             })?;
         let content = match document_extract_content(&file_name, &file_extension) {
-            Ok(content) => content
-                .to_lowercase()
-                .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], ""),
+            Ok(content) => {
+                // LOG
+                write_log_result(
+                    format!(
+                        "\n[Completado] Se ha extraido el contenido sin problemas. {}.{} ",
+                        file_name, file_extension
+                    ),
+                    &mut file_log,
+                )
+                .map_err(|e| {
+                    AnalysisError::FileSystemOperationError(format!(
+                        "Error al escribir logs': {}",
+                        e
+                    ))
+                })?;
+                // ENDLOG
+                content
+                    .to_lowercase()
+                    .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+            }
             Err(_) => {
+                // LOG
+                write_log_result(
+                    format!(
+                        "\n[Error] Error en la extracción del contenido. {}.{}",
+                        file_name, file_extension
+                    ),
+                    &mut file_log,
+                )
+                .map_err(|e| {
+                    AnalysisError::FileSystemOperationError(format!(
+                        "Error al escribir logs': {}",
+                        e
+                    ))
+                })?;
+                // ENDLOG
                 let mut processed_file_status: Vec<CellStruct> = Vec::new();
                 processed_file_status.push(file.clone().cell());
                 processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
@@ -517,12 +607,36 @@ pub fn option_two() -> Result<(), AnalysisError> {
             &mut general_n_words_unique_vec,
         )
         .map_err(|e| {
+            // LOG
+            let _ = write_log_result(
+                format!(
+                    "\n[Error] Ha ocurrido un problema al analizar el contenido del documento. {}.{}", file_name, file_extension
+                ),
+                &mut file_log,
+            )
+            .map_err(|e| {
+                AnalysisError::FileSystemOperationError(format!(
+                    "Error al escribir logs': {}",
+                    e
+                ))
+            });
+            // ENDLOG
             let mut processed_file_status: Vec<CellStruct> = Vec::new();
             processed_file_status.push(file.clone().cell());
             processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
             processed_file_status_table.push(processed_file_status);
             AnalysisError::ProcessingError(format!("Error con el analisis del documento {}", e))
         })?;
+
+        // LOG
+        write_log_result(
+            format!("\n[Completado] Se ha analizado el contenido completo del documento."),
+            &mut file_log,
+        )
+        .map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+        })?;
+        // ENDLOG
 
         let (mut keys, mut values) = initializer_word_hashmap_handler(&words).map_err(|e| {
             let mut processed_file_status: Vec<CellStruct> = Vec::new();
@@ -599,6 +713,19 @@ pub fn option_two() -> Result<(), AnalysisError> {
             &folder_warehouse_heaps_plot,
             &file_name,
         );
+
+        // LOG
+        write_log_result(
+            format!(
+                "\n[Completado] Todos los graficos han sido generados para el documento: {}.{}",
+                file_name, file_extension
+            ),
+            &mut file_log,
+        )
+        .map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+        })?;
+        // ENDLOG
 
         let mut processed_file_status: Vec<CellStruct> = Vec::new();
         processed_file_status.push(file.clone().cell());
@@ -724,6 +851,19 @@ pub fn option_two() -> Result<(), AnalysisError> {
 
     let table_display = table.display().unwrap();
     println!("{}", table_display);
+
+    // LOG
+    write_log_result(
+        format!(
+            "\n[Completado] Se han generado graficos extras del dataset como conjunto.\n[Completado] El procesamiento del dataset ha finalizado: {}.{}",
+            file_name_dataset, file_extension_dataset
+        ),
+        &mut file_log,
+    )
+    .map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+    })?;
+    // ENDLOG
     println!("Ejecutado en {:.3?}", started.elapsed());
 
     Ok(())

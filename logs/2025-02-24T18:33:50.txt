@@ -1,0 +1,29 @@
+Initialized log process at: 2025-02-24T18:33:50
+[Completado] Inter words instanciados correctamente. ["of", "this"]
+[Completado] Se ha leido el dataset correctamente. joe-biden-debug.csv
+[Completado] Se ha leido la fila sin problemas. [Fila: file:jb1.txt, year:2025]. 
+[Completado] Se ha extraido el contenido sin problemas. jb1.txt 
+[Completado] Se ha analizado el contenido completo del documento.
+[Completado] Todos los graficos han sido generados para el documento: jb1.txt
+[Completado] Se ha leido la fila sin problemas. [Fila: file:jb2.txt, year:2024]. 
+[Completado] Se ha extraido el contenido sin problemas. jb2.txt 
+[Completado] Se ha analizado el contenido completo del documento.
+[Completado] Todos los graficos han sido generados para el documento: jb2.txt
+[Completado] Se ha leido la fila sin problemas. [Fila: file:jb8.txt, year:2023]. 
+[Completado] Se ha extraido el contenido sin problemas. jb8.txt 
+[Completado] Se ha analizado el contenido completo del documento.
+[Completado] Todos los graficos han sido generados para el documento: jb8.txt
+[Completado] Se ha leido la fila sin problemas. [Fila: file:jb10.txt, year:2023]. 
+[Completado] Se ha extraido el contenido sin problemas. jb10.txt 
+[Completado] Se ha analizado el contenido completo del documento.
+[Completado] Todos los graficos han sido generados para el documento: jb10.txt
+[Error] Error en fila del dataset, nombre de archivo ó extensión no identificable [Fila: file:jbl, year:2022]. 
+[Completado] Se ha leido la fila sin problemas. [Fila: file:jb12.txt, year:2022]. 
+[Completado] Se ha extraido el contenido sin problemas. jb12.txt 
+[Completado] Se ha analizado el contenido completo del documento.
+[Completado] Todos los graficos han sido generados para el documento: jb12.txt
+[Completado] Se ha leido la fila sin problemas. [Fila: file:jb28.txt, year:2021]. 
+[Completado] Se ha extraido el contenido sin problemas. jb28.txt 
+[Completado] Se ha analizado el contenido completo del documento.
+[Completado] Todos los graficos han sido generados para el documento: jb28.txt
+[Completado] El procesamiento del dataset ha finalizado: joe-biden-debug.csv

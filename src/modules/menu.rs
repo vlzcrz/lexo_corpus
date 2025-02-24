@@ -21,6 +21,10 @@ pub fn main_menu() {
     if !folder_plot_exists {
         fs::create_dir("./books-plot").unwrap();
     }
+    let folder_log_exists = fs::exists("./logs").unwrap();
+    if !folder_log_exists {
+        fs::create_dir("./logs").unwrap();
+    }
 
     while user_input.trim() != "0" {
         println!(

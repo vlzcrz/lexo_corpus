@@ -1,0 +1,3 @@
+Initialized log process at: 2025-02-24T17:56:11
+[Completado] Interwords creados sin problemas, interwords: ["of", "this"]
+[Error] Error al leer el nombre del archivo y su extension.

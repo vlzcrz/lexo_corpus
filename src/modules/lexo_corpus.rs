@@ -18,6 +18,7 @@ use crate::modules::{
         analyzer_content_dataset_opt, analyzer_content_opt3, copy_interword_to_main,
         copy_words_to_main, create_inter_words, create_inter_words_differ, input_inter_words,
     },
+    log_handlers::{create_log_instance, write_log_result},
     plot_handlers::{
         lineplot_alpha_year, means_hashmap_to_vectors, plot_heaps_law, plot_heat_map, plot_zipf_law,
     },
@@ -31,8 +32,12 @@ use super::{
 };
 
 pub fn option_one() -> Result<(), AnalysisError> {
-    // Directorio donde se encuentran los pdf
-    //let base_path = String::from("books-pdf/");
+    let mut file_log = create_log_instance().map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Error al crear el log del proceso 'Option One': {}",
+            e
+        ))
+    })?;
     // Variable de salida para cuando se ingresa un pdf correcto
     let mut did_read = false;
     // Listado de palabras permitidas para filtrar dentro del corpus
@@ -47,11 +52,28 @@ pub fn option_one() -> Result<(), AnalysisError> {
     // HashMap para guardar las palabras inter-word de interes el documento
     let (mut inter_words_hashmaps, mut last_positions, inter_words_strings) = create_inter_words()
         .map_err(|e| {
+            write_log_result(
+                format!("Error al crear los interwords de interes. Error: {}", e),
+                &mut file_log,
+            )
+            .unwrap();
             AnalysisError::ProcessingError(format!(
-                "Error al crear los interwords de interes: {}",
+                "[Error] Error al crear los interwords de interes: {}",
                 e
             ))
         })?;
+
+    // LOG
+    write_log_result(
+        format!(
+            "\n[Completado] Interwords creados sin problemas, interwords: {:?}",
+            inter_words_strings
+        ),
+        &mut file_log,
+    )
+    .map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+    })?;
 
     let default_folder_data = "books-data";
     let default_folder_plot = "books-plot";
@@ -71,6 +93,17 @@ pub fn option_one() -> Result<(), AnalysisError> {
         }
 
         let (name_f, extension_f) = file_path_input.split_once(".").ok_or_else(|| {
+            // LOG
+            let _ = write_log_result(
+                format!(
+                    "\n[Error] Error al leer el nombre del archivo y su extension. Valor ingresado: {}",
+                    file_path_input
+                ),
+                &mut file_log,
+            )
+            .map_err(|e| {
+                AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+            });
             AnalysisError::ParseError("Nombre de archivo ó extensión no identificable".to_string())
         })?;
 
@@ -89,10 +122,35 @@ pub fn option_one() -> Result<(), AnalysisError> {
                     "Error al leer el archivo: {}. Por favor, intente nuevamente.",
                     e
                 );
+                write_log_result(
+                    format!(
+                        "\n[Error] Error al extraer el archivo: {}.{} , error: {}.",
+                        file_name, file_extension, e,
+                    ),
+                    &mut file_log,
+                )
+                .map_err(|e| {
+                    AnalysisError::FileSystemOperationError(format!(
+                        "Error al escribir logs': {}",
+                        e
+                    ))
+                })?;
                 continue;
             }
         };
     }
+
+    // LOG
+    write_log_result(
+        format!(
+            "\n[Completado] Contenido leido sin problemas: {}.{}",
+            file_name, file_extension
+        ),
+        &mut file_log,
+    )
+    .map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+    })?;
 
     let started = Instant::now();
     //clear_screen();
@@ -101,6 +159,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
         "# Inicio del proceso de extracción y analisis del documento: {}.{} ...",
         file_name, file_extension
     );
+
     let (n_words_total_vec, n_words_unique_vec) = analyzer_content(
         content,
         &mut words,
@@ -110,7 +169,26 @@ pub fn option_one() -> Result<(), AnalysisError> {
         &inter_words_strings,
     )
     .map_err(|e| {
+        // LOG
+        let _ = write_log_result(
+            format!(
+                "\n[Error] Error al analizar el contenido: {}.{}, error: {:?}",
+                file_name, file_extension, e
+            ),
+            &mut file_log,
+        )
+        .map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+        });
         AnalysisError::ProcessingError(format!("Error de analisis del contenido {}", e))
+    })?;
+
+    write_log_result(
+        format!("\n[Completado] Contenido analizado correctamente."),
+        &mut file_log,
+    )
+    .map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
     })?;
 
     let (mut keys, mut values) = initializer_word_hashmap_handler(&words).unwrap();
@@ -119,6 +197,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
     }
     println!("# Finalizado.");
     println!("# Inicio de procesamiento del contenido...");
+
     get_zipf_law_results(&mut keys, &mut values);
     create_csv_ordered(&keys, &values, &file_name, &default_folder_data);
     let (vec_distance, vec_frequency) = create_csv_inter_words(
@@ -128,13 +207,21 @@ pub fn option_one() -> Result<(), AnalysisError> {
         &default_folder_data,
     )
     .map_err(|e| {
+        let _ = write_log_result(
+            format!(
+                "[Error] Error en la elaboración de csv interwords {} ...",
+                e,
+            ),
+            &mut file_log,
+        )
+        .map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+        });
         AnalysisError::ProcessingError(format!(
             "Error en la generación de los csv inter words {}",
             e
         ))
     })?;
-    //let log_n_words_total = vec_apply_to_log10(&n_words_total_vec).unwrap();
-    //let log_n_words_unique = vec_apply_to_log10(&n_words_unique_vec).unwrap();
 
     plot_heat_map(
         "Frequency distribution of inter word's distance",
@@ -155,10 +242,25 @@ pub fn option_one() -> Result<(), AnalysisError> {
         &file_name,
     );
 
+    write_log_result(
+        format!("\n[Completado] Graficos heatmap y heap's law completado."),
+        &mut file_log,
+    )
+    .map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+    })?;
+
     let (log_ranking, log_values) = apply_to_log10(values).map_err(|e| {
         AnalysisError::ParseError(format!("Error en el cálculo logarítmico en base 10 {}", e))
     })?;
     let zipfs_parameters = linear_regression_x1(&log_ranking, &log_values).map_err(|e| {
+        let _ = write_log_result(
+            format!("\n[Error] Error en cálcular la regresión lineal. {}", e),
+            &mut file_log,
+        )
+        .map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+        });
         AnalysisError::ProcessingError(format!("Error en la regresión lineal {}", e))
     })?;
 
@@ -171,6 +273,16 @@ pub fn option_one() -> Result<(), AnalysisError> {
     );
 
     println!("# Finalizado.");
+    write_log_result(
+        format!(
+            "\n[Completado] Archivo procesado: {}.{} ha finalizado correctamente.",
+            file_name, file_extension,
+        ),
+        &mut file_log,
+    )
+    .map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
+    })?;
     println!("Ejecutado en {:.3?}", started.elapsed());
     Ok(())
 }

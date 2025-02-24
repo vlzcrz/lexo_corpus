@@ -1,0 +1,6 @@
+Initialized log process at: 2025-02-24T18:06:59
+[Completado] Interwords creados sin problemas, interwords: ["hola", "adios", "this"]
+[Completado] Contenido leido sin problemas: tallerads.pdf
+[Completado] Contenido analizado correctamente.
+[Completado] Graficos heatmap y heap's law completado.
+[Completado] Archivo procesado: tallerads.pdf ha finalizado correctamente.

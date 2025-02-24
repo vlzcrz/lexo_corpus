@@ -1,4 +1,4 @@
-use std::io;
+use std::{fs, io};
 
 use owo_colors::OwoColorize;
 
@@ -9,6 +9,18 @@ use crate::modules::{
 
 pub fn main_menu() {
     let mut user_input = String::new();
+    let folder_fracts_exists = fs::exists("./books-fracts").unwrap();
+    if !folder_fracts_exists {
+        fs::create_dir("./books-fracts").unwrap();
+    }
+    let folder_data_exists = fs::exists("./books-data").unwrap();
+    if !folder_data_exists {
+        fs::create_dir("./books-data").unwrap();
+    }
+    let folder_plot_exists = fs::exists("./books-plot").unwrap();
+    if !folder_plot_exists {
+        fs::create_dir("./books-plot").unwrap();
+    }
 
     while user_input.trim() != "0" {
         println!(

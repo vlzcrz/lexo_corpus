@@ -73,9 +73,23 @@ tambien instalar las librerias de desarrollo python-dev para establecer la inter
 4. Copiar y pegar la carpeta completa de la libreria externa TET:
 
    - Renombra la carpeta a TET-5.6... a 'tetlib'
-   - Traslada la carpeta 'tetlib' a la carpeta 'python' '{carpeta raiz del proyecto}/python/'
+   - Traslada la carpeta 'tetlib' dentro de la carpeta 'python' dentro del proyecto
 
-5. Iniciar el proyecto (con el venv activado):
+5. Crear las carpetas que permitiran la interacción con el programa
+   Crea las siguientes carpetas en la raiz del proyecto:
+
+   - "books-pdf" (carpeta donde almacenaras los pdf a analizar)
+   - "books-txt" (carpeta donde almacenaras los txt a analizar)
+   - "labeled-data" (carpeta donde almacenaras los csv para automatizar el analisis de varios documentos con su año.)
+     Ej:
+
+   ```csv
+   document,year
+   joe-biden-1.txt,2025
+   joe-biden-2.txt,2024
+   ```
+
+6. Iniciar el proyecto (con el venv activado):
    ```bash
    cargo run
    ```

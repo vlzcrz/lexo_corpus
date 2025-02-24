@@ -4,7 +4,7 @@ use owo_colors::OwoColorize;
 
 use crate::modules::{
     file_handlers::clean_folder,
-    lexo_corpus::{option_one, option_three, option_two},
+    lexo_corpus::{option_one, option_two},
 };
 
 pub fn main_menu() {

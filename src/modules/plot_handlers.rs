@@ -40,7 +40,7 @@ pub fn plot_heaps_law(
 
         let file_name_formatted = format!("heaps-law ({})", file_name);
         let args = (x_values, y_values, folder_name, file_name_formatted);
-        function.call1(args);
+        let _ = function.call1(args);
     });
 }
 
@@ -70,7 +70,7 @@ pub fn plot_zipf_law(
             folder_name,
             file_name_formatted,
         );
-        function.call1(args);
+        let _ = function.call1(args);
     });
 }
 
@@ -103,7 +103,7 @@ pub fn lineplot_alpha_year(
             folder_name,
             file_name_formatted,
         );
-        function.call1(args);
+        let _ = function.call1(args);
     });
 }
 
@@ -140,6 +140,6 @@ pub fn plot_heat_map(
             folder_name,
             file_name_formatted,
         );
-        function.call1(args);
+        let _ = function.call1(args);
     });
 }

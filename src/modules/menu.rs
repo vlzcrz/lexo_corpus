@@ -63,10 +63,6 @@ pub fn main_menu() {
             }
         }
 
-        if user_input.trim() == "4" {
-            //option_three();
-        }
-
         if user_input.trim() == "3" {
             clean_folder("books-fracts");
         }

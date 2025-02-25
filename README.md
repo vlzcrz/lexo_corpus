@@ -30,8 +30,8 @@ tambien instalar las librerias de desarrollo python-dev para establecer la inter
 
 - [UBUNTU]
 
-  sudo apt install build-essential
-  sudo apt install python3-dev
+  - sudo apt install build-essential
+  - sudo apt install python3-dev
 
 ## Instalación
 
@@ -53,7 +53,7 @@ tambien instalar las librerias de desarrollo python-dev para establecer la inter
    Activar el venv:
 
    ```bash
-   source /lexo_corpus_env/bin/activate
+   source lexo_corpus_env/bin/activate
    ```
 
    Instala dependencias python:
@@ -93,3 +93,7 @@ tambien instalar las librerias de desarrollo python-dev para establecer la inter
    ```bash
    cargo run
    ```
+
+## Demostración
+
+![](demo.gif)

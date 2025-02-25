@@ -71,6 +71,8 @@ pub fn create_csv_ordered(
     let mut word_list = csv::Writer::from_path(file_path_nall).unwrap();
     let mut word_list_n50 = csv::Writer::from_path(file_path_n50).unwrap();
 
+    let limit = keys.len().min(50);
+
     //Headers
     word_list.write_record(["Word", "Frequency"]).unwrap();
     word_list_n50.write_record(["Word", "Frequency"]).unwrap();
@@ -82,7 +84,7 @@ pub fn create_csv_ordered(
     }
     word_list.flush().unwrap();
 
-    for index in 0..50 {
+    for index in 0..limit {
         word_list_n50
             .write_record([keys[index].to_string(), values[index].to_string()])
             .unwrap();

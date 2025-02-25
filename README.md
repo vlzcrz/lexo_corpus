@@ -94,6 +94,45 @@ tambien instalar las librerias de desarrollo python-dev para establecer la inter
    cargo run
    ```
 
+## Ejecutando el binario
+
+[UBUNTU]
+
+1. Una vez descargado el binario, situelo dentro de una carpeta y otorguele permisos de ejecución.
+
+   ```bash
+   mkdir lexo_corpus
+   mv lexo_corpus /lexo_corpus
+   ```
+
+   ```bash
+   chmod +x /lexo_corpus/lexo_corpus
+   ```
+
+2. Inicializar y activar el entorno virtual de python
+
+   ```bash
+   python3 -m venv lexo_corpus_env
+   ```
+
+   ```bash
+   source lexo_corpus_env/bin/activate
+   ```
+
+3. Instale las dependencias de python
+
+   ```bash
+   pip install maturin
+   ```
+
+   ```bash
+   pip install --upgrade pymupdf
+   ```
+
+   ```bash
+   pip install numpy matplotlib seaborn
+   ```
+
 ## Demostración
 
 ![](demo.gif)

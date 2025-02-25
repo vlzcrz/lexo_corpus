@@ -2,8 +2,8 @@
 
 ## Descripción
 
-El proposito del proyecto es el analisis de corpus producto del contenido extraido de los documentos con formato .txt y .pdf
-Cuenta con el analisis automatizado de grandes volumenes de texto presentes en documentos y obtener como resultados graficas y listas relevantes.
+El proposito del proyecto es el analisis de corpus producto del contenido extraido de los documentos con formato 'txt' y 'pdf'.
+Cuenta con el analisis automatizado de grandes volumenes de texto presentes en documentos, obteniendo como resultados graficas y listas de palabras relevantes en 'csv'.
 
 ## Características
 
@@ -25,7 +25,7 @@ Funcionalidades a detalle
 
 ## Dependencias Requeridas
 
-Instalar gcc compiler (varia según el sistema operativo, para ubuntu viene empaquetado em build-essential)
+Instalar gcc compiler (varia según el sistema operativo, para ubuntu viene empaquetado em build-essential).
 tambien instalar las librerias de desarrollo python-dev para establecer la interacción entre ambos lenguajes (python-rust binding)
 
 - [UBUNTU]
@@ -73,7 +73,7 @@ tambien instalar las librerias de desarrollo python-dev para establecer la inter
 4. Copiar y pegar la carpeta completa de la libreria externa TET:
 
    - Renombra la carpeta a TET-5.6... a 'tetlib'
-   - Traslada la carpeta 'tetlib' dentro de la carpeta 'python' dentro del proyecto
+   - Traslada la carpeta 'tetlib' adentro de la carpeta 'python' presente en el proyecto
 
 5. Crear las carpetas que permitiran la interacción con el programa
    Crea las siguientes carpetas en la raiz del proyecto:

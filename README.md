@@ -86,8 +86,7 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
    - Renombra la carpeta a TET-5.6... a 'tetlib'
    - Traslada la carpeta 'tetlib' adentro de la carpeta 'python' presente en el proyecto
 
-5. Crear las carpetas que permitiran la interacción con el programa
-   Crea las siguientes carpetas en la raiz del proyecto:
+5. Crea las siguientes carpetas en la raiz del proyecto:
 
    - "books-pdf" (carpeta donde almacenaras los pdf a analizar)
    - "books-txt" (carpeta donde almacenaras los txt a analizar)
@@ -150,6 +149,20 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
 
    ```bash
    pip install numpy matplotlib seaborn
+
+   ```
+
+4. Crea las siguientes carpetas en lexo_corpus_dir:
+
+   - "books-pdf" (carpeta donde almacenaras los pdf a analizar)
+   - "books-txt" (carpeta donde almacenaras los txt a analizar)
+   - "labeled-data" (carpeta donde almacenaras los csv para automatizar el analisis de varios documentos con su año.)
+     Ej:
+
+   ```csv
+   document,year
+   joe-biden-1.txt,2025
+   joe-biden-2.txt,2024
    ```
 
 ## Demostración PROYECTO LEXO CORPUS

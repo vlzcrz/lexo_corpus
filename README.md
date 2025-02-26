@@ -25,13 +25,24 @@ Funcionalidades a detalle
 
 ## Dependencias Requeridas
 
-Instalar gcc compiler (varia según el sistema operativo, para ubuntu viene empaquetado em build-essential).
+Instalar gcc compiler (varia según el sistema operativo, para ubuntu viene empaquetado en build-essential).
 tambien instalar las librerias de desarrollo python-dev para establecer la interacción entre ambos lenguajes (python-rust binding)
 
 - [UBUNTU]
 
   - sudo apt install build-essential
   - sudo apt install python3-dev
+
+## ⚠️ Nota importante ⚠️
+
+Como la compilación y construcción del binario se realizo en Linux (Ubuntu 22.04) el binario no
+tendra complicaciones de ejecución si es ejecutado bajo el mismo OS o distro similar de Linux.
+
+Si no esta utilizando Ubuntu 22.04 o superior se recomienda el primer metodo, donde se elabora y construye
+el binario con las dependencias de su sistema gracias al empaquetador de Rust (Cargo), este binario generado sera ejecutado sin problemas en su OS y sera compatible
+con su OS (Windows, macOS, etc.).
+
+Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
 
 ## Instalación
 
@@ -98,15 +109,15 @@ tambien instalar las librerias de desarrollo python-dev para establecer la inter
 
 [UBUNTU]
 
-1. Una vez descargado el binario, situelo dentro de una carpeta y otorguele permisos de ejecución.
+1. Una vez descargado el binario, situelo dentro de una carpeta y de permisos de ejecución.
 
    ```bash
-   mkdir lexo_corpus
-   mv lexo_corpus /lexo_corpus
+   mkdir lexo_corpus_dir
+   sudo mv lexo_corpus /lexo_corpus_dir
    ```
 
    ```bash
-   chmod +x /lexo_corpus/lexo_corpus
+   sudo chmod +x /lexo_corpus_dir/lexo_corpus
    ```
 
 2. Inicializar y activar el entorno virtual de python
@@ -115,15 +126,23 @@ tambien instalar las librerias de desarrollo python-dev para establecer la inter
    python3 -m venv lexo_corpus_env
    ```
 
+   ***
+
+   ⚠️ _En caso de error al crear el env debera instalar el siguiente paquete de recursos. (La versión del paquete depende de la versión de ubuntu)_
+
+   ```bash
+   sudo apt install python3.10-venv
+   ```
+
+   ***
+
+   Active y mantenga activado en todo momento el python environment
+
    ```bash
    source lexo_corpus_env/bin/activate
    ```
 
 3. Instale las dependencias de python
-
-   ```bash
-   pip install maturin
-   ```
 
    ```bash
    pip install --upgrade pymupdf
@@ -133,6 +152,6 @@ tambien instalar las librerias de desarrollo python-dev para establecer la inter
    pip install numpy matplotlib seaborn
    ```
 
-## Demostración
+## Demostración PROYECTO LEXO CORPUS
 
 ![](demo.gif)

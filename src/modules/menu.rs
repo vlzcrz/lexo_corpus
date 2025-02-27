@@ -2,7 +2,10 @@ use std::{fs, io};
 
 use owo_colors::OwoColorize;
 
-use crate::modules::lexo_corpus::{option_one, option_two};
+use crate::modules::{
+    debug::debug_menu::debug_menu,
+    lexo_corpus::{option_one, option_two},
+};
 
 pub fn main_menu() {
     let mut user_input = String::new();
@@ -26,10 +29,10 @@ pub fn main_menu() {
     while user_input.trim() != "0" {
         println!(
             "
-[LEXO CORPUS PR-CLI] Menu principal
+[LEXO CORPUS PR-CLI] Menú principal
 1.- Analizar documento de manera individual.
 2.- Analizar lote de documentos etiquetados (csv). 
-3.- Limpiar carpeta books-fracts.
+3.- [DEBUG] Debug Menú fn.
 0.- Salir.
         "
         );
@@ -58,6 +61,10 @@ pub fn main_menu() {
                     eprintln!("\n{} -> {}", " Error en la ejecución ".on_red().bold(), e);
                 }
             }
+        }
+
+        if user_input.trim() == "3" {
+            debug_menu();
         }
     }
 

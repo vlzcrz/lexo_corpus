@@ -285,7 +285,7 @@ pub fn document_extract_content(file_name: &str, file_extension: &str) -> Result
         let content = match read_document_pdf(file_name) {
             Ok(content) if !content.is_empty() => content, // Si la función tiene éxito y el contenido no está vacío, úsalo.
             Ok(_) => {
-                println!("El PDF está vacío o no se pudo leer, intentando alternativa...");
+                println!("Problemas al extraer el contenido. ,intentando alternativa...");
 
                 division_pdf(file_name).unwrap();
 
@@ -309,10 +309,29 @@ pub fn document_extract_content(file_name: &str, file_extension: &str) -> Result
             }
             Err(error) => {
                 println!(
-                    "Fallo al leer el pdf, todas las alternativas han sido utilizadas: {:?}",
+                    "Problemas al leer el PDF. Error:{:?}, intentando alternativa...",
                     error
                 );
-                String::new()
+
+                division_pdf(file_name).unwrap();
+
+                match get_files_from_folder("books-fracts") {
+                    Ok(filename_extension_tuples) => {
+                        let mut combined_content = String::new();
+                        for (file, _) in filename_extension_tuples.iter() {
+                            if let Ok(content) = read_tet_document_pdf(file) {
+                                combined_content.push_str(&content);
+                                combined_content.push(' ');
+                            }
+                        }
+                        clean_folder("books-fracts");
+                        combined_content
+                    }
+                    Err(e) => {
+                        println!("Error en get_files_from_folder: {:?}", e);
+                        String::new()
+                    }
+                }
             }
         };
         Ok(content)

@@ -3,6 +3,7 @@ use std::{
     io::{self, Error, Read},
 };
 
+use owo_colors::OwoColorize;
 use pdf_extract::OutputError;
 use pyo3::{
     ffi::c_str,
@@ -21,6 +22,10 @@ pub fn input_doc_file() -> Result<String, Error> {
 }
 
 pub fn read_document_txt_debug() -> Result<String, Error> {
+    println!(
+        "El scope para esta función esta solo abarcando los archivos de la carpeta 'books-txt'\n {}",
+        "No especifique extensión de archivo".on_yellow()
+    );
     let input_file_name = input_doc_file().unwrap();
     if input_file_name == "0" {
         return Ok("0".to_string());
@@ -34,6 +39,10 @@ pub fn read_document_txt_debug() -> Result<String, Error> {
 }
 
 pub fn read_document_pdf_debug() -> Result<String, OutputError> {
+    println!(
+        "El scope para esta función esta solo abarcando los archivos de la carpeta 'books-pdf'.\n {}",
+        "No especifique extensión de archivo".on_yellow()
+    );
     let input_file_name = input_doc_file().unwrap();
     if input_file_name == "0" {
         return Ok("0".to_string());
@@ -89,6 +98,12 @@ pub fn read_tet_document_pdf_debug(file_name: &str) -> Result<String, Error> {
 }
 
 pub fn read_pdf_tet() -> Result<String, Error> {
+    println!(
+        "El scope para esta función esta solo abarcando los archivos de la carpeta 'books-pdf'.\n {}",
+        "No especifique extensión de archivo".on_yellow()
+        
+    );
+    
     let input_file_name = input_doc_file().unwrap();
     if input_file_name == "0" {
         return Ok("0".to_string());

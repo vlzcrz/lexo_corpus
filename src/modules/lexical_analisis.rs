@@ -5,8 +5,23 @@ use std::{
 
 use crate::modules::cli_handlers::clear_screen;
 
-// Funcion para verificar que es una letra que pertenece a nuestro rango ASCII de interes
-pub fn is_ascii_valid(word: &str, ascii_interest: &Vec<u8>) -> Result<bool, Error> {
+use super::exception_handlers::AnalysisError;
+
+/// Verifica que la palabra a analizar sea valida dado un vector de valores ascii permitidos
+/// ## Params
+/// ```
+/// - word: &str
+/// - ascii_interest: &Vec<u8>
+/// ```
+/// word: Palabra en formato string literal a analizar
+/// ascii_interest: vector que almacena valores de 8 bit permitiendo valores ascii del 0 al 255
+/// ## Returns
+/// ```
+/// - Ok(bool)
+/// ```
+/// Si la variable 'word' es admitida retorna true, caso contrario false
+///
+pub fn is_ascii_valid(word: &str, ascii_interest: &Vec<u8>) -> Result<bool, AnalysisError> {
     let bytes_word = word.as_bytes();
     for byte in bytes_word {
         if !ascii_interest.contains(byte) {
@@ -16,14 +31,30 @@ pub fn is_ascii_valid(word: &str, ascii_interest: &Vec<u8>) -> Result<bool, Erro
     Ok(true)
 }
 
-pub fn input_inter_words() -> Result<Vec<String>, Error> {
+/// Captura los interwords de interes del usuario por consola uno por uno hasta recibir '0'
+///
+/// ## Returns
+///
+/// ```
+/// - Ok(Vec<String>)
+/// ```
+/// Si el usuario ingresó palabras o devuelve el vector vacio.
+///
+/// ## Errors
+///```
+/// - AnalysisError::IoError
+/// ```
+/// Si hay un problema con la entrada de datos por consola.
+pub fn input_inter_words() -> Result<Vec<String>, AnalysisError> {
     let mut inter_words: Vec<String> = Vec::new();
     let mut exit_while = false;
     while !exit_while {
         let mut inter_word = String::new();
         clear_screen();
         println!("Ingrese el inter word de interes para analizar en su archivo pdf o txt, ó ingrese '0' para ya no continuar, actualmente tiene seleccionado: {:?}", inter_words);
-        io::stdin().read_line(&mut inter_word)?;
+        io::stdin()
+            .read_line(&mut inter_word)
+            .map_err(|e| AnalysisError::IoError(e))?;
         let inter_word = inter_word.trim().to_string().to_lowercase();
         if inter_word == "0" {
             exit_while = true;
@@ -34,7 +65,22 @@ pub fn input_inter_words() -> Result<Vec<String>, Error> {
     Ok(inter_words)
 }
 
-pub fn create_inter_words() -> Result<(Vec<HashMap<u32, u32>>, Vec<u32>, Vec<String>), Error> {
+/// Crea y inicializa un vector con los interwords del usuario capturados por consola, un vector de hashmaps (key: distancia, value: frecuencia) para cada interword identificado,
+/// un vector para la trazabilidad de posiciones de cada interword (manteniendo correlatividad).
+///
+/// ## Returns
+/// ```
+/// - Ok(Vec<HashMap<u32, u32>>, Vec<u32>, Vec<String>)
+/// ```
+/// Si hay almenos una interword, se elaboran los hashmaps y vectores de trazabilidad de posición (del interword en cuestión) devolviendo una tupla de 3 variables no vacias.
+/// de otra forma, devuelve una tupla de 3 variables vacias.
+/// ## Errors
+/// ```
+/// - AnalysisError::IoError
+/// ```
+/// Si hay un problema con la entrada de datos por consola.
+pub fn create_inter_words() -> Result<(Vec<HashMap<u32, u32>>, Vec<u32>, Vec<String>), AnalysisError>
+{
     let inter_words_strings: Vec<String> = input_inter_words()?;
     let mut last_positions: Vec<u32> = Vec::new();
     let mut inter_words_hashmaps: Vec<HashMap<u32, u32>> = Vec::new();
@@ -49,9 +95,28 @@ pub fn create_inter_words() -> Result<(Vec<HashMap<u32, u32>>, Vec<u32>, Vec<Str
     Ok((inter_words_hashmaps, last_positions, inter_words_strings))
 }
 
+/// A partir de un vector con los interwords inicializado. Crea y inicializa un vector de hashmaps (key: distancia, value: frecuencia) para cada interword identificado,
+/// un vector para la trazabilidad de posiciones de cada interword (manteniendo correlatividad).
+///
+/// ## Params
+/// ```
+/// - inter_words_strings: &Vec<String>
+/// ```
+/// Vector referencial (Borrowed) contenedora de interwords
+/// ## Returns
+/// ```
+/// - Ok(Vec<HashMap<u32, u32>>, Vec<u32>, Vec<String>)
+/// ```
+/// Si hay almenos una interword, se elaboran los hashmaps y vectores de trazabilidad de posición (del interword en cuestión) devolviendo una tupla de 3 variables no vacias.
+/// de otra forma, devuelve una tupla de 3 variables vacias.
+/// ## Errors
+/// ```
+///
+/// ```
+/// Si hay un problema con la entrada de datos por consola.
 pub fn create_inter_words_differ(
     inter_words_strings: &Vec<String>,
-) -> Result<(Vec<HashMap<u32, u32>>, Vec<u32>), Error> {
+) -> Result<(Vec<HashMap<u32, u32>>, Vec<u32>), AnalysisError> {
     let mut last_positions: Vec<u32> = Vec::new();
     let mut inter_words_hashmaps: Vec<HashMap<u32, u32>> = Vec::new();
     let mut count_strings = 0;
@@ -65,6 +130,30 @@ pub fn create_inter_words_differ(
     Ok((inter_words_hashmaps, last_positions))
 }
 
+/// Analiza el contenido de un texto extraido, iterando entre palabras mediante espacios en blancos y saltos de lineas, verificando que la palabra
+/// se encuentre permitida a analizarse, guardando la palabra y sus cantidad de repetición sea almacenada.
+///
+/// ## Params
+/// ```
+/// - content: String,
+/// - words: &mut HashMap<String, u32>,
+/// - ascii_interest: &Vec<u8>,
+/// - inter_words_hashmaps: &mut Vec<HashMap<u32, u32>>,
+/// - last_positions: &mut Vec<u32>,
+/// - inter_words_strings: &Vec<String>,
+/// ```
+/// content: Texto plano extraido de un documento
+/// words: Hashmap de palabras (key: palabra, value: frecuencia) para almacenar palabras admitidas para analizar
+/// ascii_interest; Vector de 8 bit que almacena valores ascii admitidos para analizar
+/// inter_words_hashmaps: Vector de Hashmaps de interwords, cada elemento del vector tiene un hashmap asociado a la ubicación del elemento en inter_words_strings
+/// last_positions: Vector auxiliar para mantener trazabilidad del posicionamiento de las palabras interword identificadas
+/// inter_words_strings: Vector de palabras interwords de interes para analizar.
+/// ## Returns
+/// ```
+/// - Ok((Vec<u32>, Vec<u32>))
+/// ```
+/// Retorna una tupla de vectores que contienen la cantidad total de palabras encontradas en el contenido y la cantidad total de palabras unicas encontradas en el texto,
+/// realizando multiples registros a medida que el documento se analiza completamente (snapshots dividido en batch de 10).
 pub fn analyzer_content(
     content: String,
     words: &mut HashMap<String, u32>,
@@ -72,7 +161,7 @@ pub fn analyzer_content(
     inter_words_hashmaps: &mut Vec<HashMap<u32, u32>>,
     last_positions: &mut Vec<u32>,
     inter_words_strings: &Vec<String>,
-) -> Result<(Vec<u32>, Vec<u32>), Error> {
+) -> Result<(Vec<u32>, Vec<u32>), AnalysisError> {
     let len_words = content.split_whitespace().count() as i32 - 1;
     let mut batches: Vec<i32> = Vec::new();
     let mut batch_index_iter = 0;
@@ -88,7 +177,7 @@ pub fn analyzer_content(
     let mut n_words_unique_vec: Vec<u32> = Vec::new();
 
     for (index_word, word) in content.split_whitespace().enumerate() {
-        if is_ascii_valid(word, ascii_interest).unwrap() {
+        if is_ascii_valid(word, ascii_interest)? {
             let count = words.entry(word.to_string()).or_insert(0);
             if *count == 0 {
                 n_words_unique += 1;
@@ -145,7 +234,7 @@ pub fn analyzer_content_dataset_opt(
     n_words_unique: &mut u32,
     n_words_total_vec: &mut Vec<u32>,
     n_words_unique_vec: &mut Vec<u32>,
-) -> Result<(Vec<u32>, Vec<u32>), Error> {
+) -> Result<(Vec<u32>, Vec<u32>), AnalysisError> {
     let len_words = content.split_whitespace().count() as i32 - 1;
     let mut batches: Vec<i32> = Vec::new();
     let mut batch_index_iter = 0;
@@ -216,14 +305,16 @@ pub fn analyzer_content_dataset_opt(
 
 pub fn initializer_word_hashmap_handler(
     words: &HashMap<String, u32>,
-) -> Result<(Vec<String>, Vec<u32>), Error> {
+) -> Result<(Vec<String>, Vec<u32>), AnalysisError> {
     let mut keys: Vec<String> = Vec::new();
     let mut values: Vec<u32> = Vec::new();
     for (key, value) in words {
         keys.push(key.to_string());
         values.push(*value);
     }
-
+    if keys.is_empty() && values.is_empty() {
+        return Err(AnalysisError::EmptyResultError);
+    }
     Ok((keys, values))
 }
 

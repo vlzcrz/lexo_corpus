@@ -8,6 +8,8 @@ use std::{
 use pdf_extract::OutputError;
 use pyo3::{ffi::c_str, prelude::*};
 
+use super::exception_handlers::AnalysisError;
+
 // una función que permita leer el documento pdf
 pub fn read_document_pdf(file_name: &str) -> Result<String, OutputError> {
     let file_path = format!("./books-pdf/{}.pdf", file_name);
@@ -27,11 +29,19 @@ pub fn read_document_pdf(file_name: &str) -> Result<String, OutputError> {
 }
 
 // una función que permita leer el documento txt
-pub fn read_document_txt(file_name: &str) -> Result<String, Error> {
+pub fn read_document_txt(file_name: &str) -> Result<String, AnalysisError> {
     let file_path = format!("books-txt/{}.txt", file_name);
-    let mut f = File::open(file_path)?;
+    let mut f = File::open(file_path).map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Lectura fallida: Documento txt no existe ó requiere permisos."
+        ))
+    })?;
     let mut content = String::new();
-    f.read_to_string(&mut content)?;
+    f.read_to_string(&mut content).map_err(|e| {
+        AnalysisError::ParseError(format!(
+            "Fallo al convertir los bytes del contenido del documento txt a formato String"
+        ))
+    })?;
     Ok(content)
 }
 
@@ -276,16 +286,20 @@ pub fn read_tet_document_pdf(file_name: &str) -> Result<String, Error> {
     Ok(content)
 }
 
-pub fn document_extract_content(file_name: &str, file_extension: &str) -> Result<String, Error> {
+pub fn document_extract_content(
+    file_name: &str,
+    file_extension: &str,
+) -> Result<String, AnalysisError> {
     if file_extension == "txt" {
         return read_document_txt(file_name);
     }
 
     if file_extension == "pdf" {
         let content = match read_document_pdf(file_name) {
-            Ok(content) if !content.is_empty() => content, // Si la función tiene éxito y el contenido no está vacío, úsalo.
+            Ok(content) if !content.is_empty() => content,
+            // Se tienen que realizar ambos casos, ya que la lectura del pdf puede realizarse y no extraerse ningun contenido o bien falla al abrir el pdf
             Ok(_) => {
-                println!("Problemas al extraer el contenido. ,intentando alternativa...");
+                println!("Problemas al extraer el contenido, intentando alternativa...");
 
                 division_pdf(file_name).unwrap();
 

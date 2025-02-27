@@ -27,9 +27,9 @@ pub fn debug_menu() {
         println!(
             "
 [LEXO CORPUS DEBUG] Menú principal
-1.- Extracción de texto archivos txt (read_file)
-2.- Extracción de texto archivos pdf (pdf_extract)
-3.- Extracción de texto archivos pdf (TET lib)
+1.- Mostrar extracción de texto archivos txt (read_file [OS bytes])
+2.- Mostrar extracción de texto archivos pdf (pdf extract [Rust Crate])
+3.- Mostrar extracción de texto archivos pdf (TET lib [Python Lib])
 0.- Salir.
         "
         );

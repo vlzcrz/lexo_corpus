@@ -50,18 +50,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
     // HashMap para guardar las palabras encontradas dentro del texto junto con su cantidad de repeticiones
     let mut words: HashMap<String, u32> = HashMap::new();
     // HashMap para guardar las palabras inter-word de interes el documento
-    let (mut inter_words_hashmaps, mut last_positions, inter_words_strings) = create_inter_words()
-        .map_err(|e| {
-            write_log_result(
-                format!("Error al crear los interwords de interes. Error: {}", e),
-                &mut file_log,
-            )
-            .unwrap();
-            AnalysisError::ProcessingError(format!(
-                "[Error] Error al crear los interwords de interes: {}",
-                e
-            ))
-        })?;
+    let (mut inter_words_hashmaps, mut last_positions, inter_words_strings) = create_inter_words()?;
 
     // LOG
     write_log_result(
@@ -70,10 +59,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
             inter_words_strings
         ),
         &mut file_log,
-    )
-    .map_err(|e| {
-        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
-    })?;
+    )?;
 
     let default_folder_data = "books-data";
     let default_folder_plot = "books-plot";
@@ -91,7 +77,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
         if file_path_input.trim() == "0" {
             return Ok(());
         }
-
+        
         let (name_f, extension_f) = file_path_input.split_once(".").ok_or_else(|| {
             // LOG
             let _ = write_log_result(
@@ -100,10 +86,8 @@ pub fn option_one() -> Result<(), AnalysisError> {
                     file_path_input
                 ),
                 &mut file_log,
-            )
-            .map_err(|e| {
-                AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
-            });
+            );
+            
             AnalysisError::ParseError("Nombre de archivo ó extensión no identificable".to_string())
         })?;
 
@@ -128,13 +112,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
                         file_name, file_extension, e,
                     ),
                     &mut file_log,
-                )
-                .map_err(|e| {
-                    AnalysisError::FileSystemOperationError(format!(
-                        "Error al escribir logs': {}",
-                        e
-                    ))
-                })?;
+                )?;
                 continue;
             }
         };
@@ -147,10 +125,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
             file_name, file_extension
         ),
         &mut file_log,
-    )
-    .map_err(|e| {
-        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
-    })?;
+    )?;
 
     let started = Instant::now();
     //clear_screen();
@@ -176,25 +151,16 @@ pub fn option_one() -> Result<(), AnalysisError> {
                 file_name, file_extension, e
             ),
             &mut file_log,
-        )
-        .map_err(|e| {
-            AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
-        });
+        );
         AnalysisError::ProcessingError(format!("Error de analisis del contenido {}", e))
     })?;
 
     write_log_result(
         format!("\n[Completado] Contenido analizado correctamente."),
         &mut file_log,
-    )
-    .map_err(|e| {
-        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
-    })?;
+    )?;
 
-    let (mut keys, mut values) = initializer_word_hashmap_handler(&words).unwrap();
-    if keys.is_empty() && values.is_empty() {
-        return Err(AnalysisError::EmptyResultError);
-    }
+    let (mut keys, mut values) = initializer_word_hashmap_handler(&words)?;
     println!("# Finalizado.");
     println!("# Inicio de procesamiento del contenido...");
 
@@ -213,10 +179,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
                 e,
             ),
             &mut file_log,
-        )
-        .map_err(|e| {
-            AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
-        });
+        );
         AnalysisError::ProcessingError(format!(
             "Error en la generación de los csv inter words {}",
             e
@@ -245,10 +208,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
     write_log_result(
         format!("\n[Completado] Graficos heatmap y heap's law completado."),
         &mut file_log,
-    )
-    .map_err(|e| {
-        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
-    })?;
+    )?;
 
     let (log_ranking, log_values) = apply_to_log10(values).map_err(|e| {
         AnalysisError::ParseError(format!("Error en el cálculo logarítmico en base 10 {}", e))
@@ -257,10 +217,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
         let _ = write_log_result(
             format!("\n[Error] Error en cálcular la regresión lineal. {}", e),
             &mut file_log,
-        )
-        .map_err(|e| {
-            AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
-        });
+        );
         AnalysisError::ProcessingError(format!("Error en la regresión lineal {}", e))
     })?;
 
@@ -279,10 +236,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
             file_name, file_extension,
         ),
         &mut file_log,
-    )
-    .map_err(|e| {
-        AnalysisError::FileSystemOperationError(format!("Error al escribir logs': {}", e))
-    })?;
+    )?;
     println!("Ejecutado en {:.3?}", started.elapsed());
     Ok(())
 }
@@ -347,7 +301,7 @@ pub fn option_two() -> Result<(), AnalysisError> {
         })?;
 
     let mut year_alphas_hashmaps: HashMap<i32, Vec<f64>> = HashMap::new();
-    let inter_words_strings = input_inter_words().map_err(|e| AnalysisError::IoError(e))?;
+    let inter_words_strings = input_inter_words()?;
     // LOG
     write_log_result(
         format!(

@@ -115,6 +115,14 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
    sudo mv lexo_corpus /lexo_corpus_dir
    ```
 
+   Acceda a la carpeta 'lexo_corpus_dir'
+
+   ```bash
+   cd lexo_corpus_dir
+   ```
+
+   Conceda permisos de ejecución
+
    ```bash
    sudo chmod +x /lexo_corpus_dir/lexo_corpus
    ```
@@ -156,6 +164,7 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
 
    - "books-pdf" (carpeta donde almacenaras los pdf a analizar)
    - "books-txt" (carpeta donde almacenaras los txt a analizar)
+   - "python" (carpeta donde almacenara la libreria externa)
    - "labeled-data" (carpeta donde almacenaras los csv para automatizar el analisis de varios documentos con su año.)
      Ej:
 
@@ -163,6 +172,17 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
    document,year
    joe-biden-1.txt,2025
    joe-biden-2.txt,2024
+   ```
+
+5. Copiar y pegar la carpeta completa de la libreria externa TET:
+
+   - Renombra la carpeta a TET-5.6... a 'tetlib'
+   - Traslada la carpeta 'tetlib' adentro de la carpeta 'python' creada anteriormente
+
+6. Iniciar el binario
+
+   ```bash
+   ./lexo_corpus
    ```
 
 ## Demostración PROYECTO LEXO CORPUS

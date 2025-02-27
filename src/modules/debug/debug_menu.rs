@@ -26,10 +26,10 @@ pub fn debug_menu() {
     while user_input.trim() != "0" {
         println!(
             "
-[LEXO CORPUS PR-CLI :=DEBUG=:] Menú principal
-1.- Extracción de texto. (Archivos txt)
-2.- Extracción de texto. (Archivos pdf letras seleccionables)
-3.- Extracción de texto. (Archivos pdf letras no seleccionables)
+[LEXO CORPUS DEBUG] Menú principal
+1.- Extracción de texto archivos txt (read_file)
+2.- Extracción de texto archivos pdf (pdf_extract)
+3.- Extracción de texto archivos pdf (TET lib)
 0.- Salir.
         "
         );

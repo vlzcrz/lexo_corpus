@@ -55,5 +55,5 @@ pub fn debug_menu() {
         }
     }
 
-    println!("Ha salido de LEXO CORPUS PR-CLI.")
+    println!("Ha salido de LEXO CORPUS DEBUG.")
 }

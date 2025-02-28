@@ -5,26 +5,26 @@ use std::{
     io::{stdout, Error, Read},
 };
 
-use pdf_extract::OutputError;
+use owo_colors::OwoColorize;
 use pyo3::{ffi::c_str, prelude::*};
 
 use super::exception_handlers::AnalysisError;
 
 // una función que permita leer el documento pdf
-pub fn read_document_pdf(file_name: &str) -> Result<String, OutputError> {
+pub fn read_document_pdf(file_name: &str) -> Result<String, AnalysisError> {
     let file_path = format!("./books-pdf/{}.pdf", file_name);
-    let bytes = std::fs::read(file_path).map_err(|er| {
-        eprintln!("Error al leer el documeto pdf, asegurese de que el nombre del archivo coincida con el valor ingresado. Error: {}", er);
-        er
+    let bytes = std::fs::read(file_path).map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Lectura fallida: Documento pdf requiere permisos adicionales. [{}]",
+            e
+        ))
     })?;
-    let content = pdf_extract::extract_text_from_mem(&bytes).map_err(|er| {
-        eprintln!(
-            "Error al extraer el contenido del pdf, pdf no compatible. Error: {}",
-            er
-        );
-        er
+    let content = pdf_extract::extract_text_from_mem(&bytes).map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Error al extraer el contenido del pdf, pdf no compatible. [{}]",
+            e
+        ))
     })?;
-
     Ok(content)
 }
 
@@ -33,13 +33,15 @@ pub fn read_document_txt(file_name: &str) -> Result<String, AnalysisError> {
     let file_path = format!("books-txt/{}.txt", file_name);
     let mut f = File::open(file_path).map_err(|e| {
         AnalysisError::FileSystemOperationError(format!(
-            "Lectura fallida: Documento txt no existe ó requiere permisos."
+            "Lectura fallida: Documento txt requiere permisos adicionales. {}",
+            e
         ))
     })?;
     let mut content = String::new();
     f.read_to_string(&mut content).map_err(|e| {
         AnalysisError::ParseError(format!(
-            "Fallo al convertir los bytes del contenido del documento txt a formato String"
+            "Error al extraer el contenido del txt, txt no compatible. {}",
+            e
         ))
     })?;
     Ok(content)
@@ -204,37 +206,30 @@ pub fn extract_csv_labeled_data(
     Ok(csv_content)
 }
 
-pub fn division_pdf(file_name: &str) -> Result<bool, Error> {
+pub fn division_pdf(file_name: &str) -> Result<(), AnalysisError> {
     let file_path = format!("books-pdf/{}.pdf", file_name);
     let code = c_str!(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/python/utils/file_handler.py"
     )));
 
-    let call_result = Python::with_gil(|py| {
-        let module =
-            PyModule::from_code(py, code, c_str!("file_handler"), c_str!("file_handler")).unwrap();
-        let function = module.getattr("split_pdf").unwrap();
+    Python::with_gil(|py| {
+        let module = PyModule::from_code(py, code, c_str!("file_handler"), c_str!("file_handler"))
+            .map_err(|e| {
+                AnalysisError::ProcessingError(format!("Error al cargar el módulo Python. {}", e))
+            })?;
 
-        // Nombre del archivo PDF de entrada
-        //let input_pdf = "books-pdf/tallerads.pdf";
+        let function = module.getattr("split_pdf").map_err(|e| {
+            AnalysisError::ProcessingError(format!("Error al obtener la función split_pdf. {}", e))
+        })?;
 
-        // Llamar a la función split_pdf en Python
-        let result = function.call1((file_path,));
+        function.call1((file_path,)).map_err(|e| {
+            AnalysisError::ProcessingError(format!("Error al dividir el PDF en Python. {}", e))
+        })?;
 
-        match result {
-            Ok(_) => {
-                println!("Division PDF exitosa");
-                return true;
-            }
-            Err(err) => {
-                println!("Error al dividir PDF: {:?}", err);
-                return false;
-            }
-        }
-    });
-
-    Ok(call_result)
+        println!("División PDF exitosa");
+        Ok(())
+    })
 }
 
 pub fn get_files_from_folder(folder_name: &str) -> Result<Vec<(String, String)>, Error> {
@@ -299,9 +294,12 @@ pub fn document_extract_content(
             Ok(content) if !content.is_empty() => content,
             // Se tienen que realizar ambos casos, ya que la lectura del pdf puede realizarse y no extraerse ningun contenido o bien falla al abrir el pdf
             Ok(_) => {
-                println!("Problemas al extraer el contenido, intentando alternativa...");
+                println!(
+                    "\n{} -> Problemas al extraer el contenido, intentando alternativa TET ...",
+                    " Atención ".on_yellow()
+                );
 
-                division_pdf(file_name).unwrap();
+                division_pdf(file_name)?;
 
                 match get_files_from_folder("books-fracts") {
                     Ok(filename_extension_tuples) => {
@@ -323,11 +321,11 @@ pub fn document_extract_content(
             }
             Err(error) => {
                 println!(
-                    "Problemas al leer el PDF. Error:{:?}, intentando alternativa...",
+                    "\n{} -> Problemas al extraer el contenido, intentando alternativa TET ... [{}]", " Atención ".on_yellow(),
                     error
                 );
 
-                division_pdf(file_name).unwrap();
+                division_pdf(file_name)?;
 
                 match get_files_from_folder("books-fracts") {
                     Ok(filename_extension_tuples) => {
@@ -350,7 +348,7 @@ pub fn document_extract_content(
         };
         Ok(content)
     } else {
-        println!("El archivo no tiene extension 'txt' ó 'pdf' ");
+        println!("Archivo no admitido. debe tener extension 'txt' ó 'pdf' ");
         Ok(String::new())
     }
 }
@@ -359,4 +357,70 @@ pub fn clean_folder(folder_name: &str) {
     let folder_path = format!("./{}/", folder_name);
     fs::remove_dir_all(&folder_path).unwrap();
     fs::create_dir(&folder_path).unwrap();
+}
+
+pub fn file_exists(file_name: &str, file_extension: &str) -> Result<bool, AnalysisError> {
+    if file_extension == "txt" {
+        let file_path = format!("./books-txt/{}.{}", file_name, file_extension);
+        let file_exists = fs::exists(file_path).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!("El archivo txt no existe. [{}]", e))
+        })?;
+
+        if !file_exists {
+            println!(
+                "{} -> El archivo txt no existe.",
+                "Error de ejecución".on_red()
+            );
+        } else {
+            println!("{} -> Archivo encontrado.", "Completado".on_green());
+        }
+
+        return Ok(file_exists);
+    }
+
+    if file_extension == "pdf" {
+        let file_path = format!("./books-pdf/{}.{}", file_name, file_extension);
+        let file_exists = fs::exists(file_path).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!("El archivo pdf no existe. [{}]", e))
+        })?;
+
+        if !file_exists {
+            println!(
+                "{} -> El archivo pdf no existe.",
+                "Error de ejecución".on_red()
+            );
+        } else {
+            println!("{}", " Archivo encontrado ".on_green());
+        }
+
+        return Ok(file_exists);
+    }
+
+    println!(
+        "{} -> El archivo debe tener extensión txt o pdf.",
+        "Error de ejecución".on_red()
+    );
+    Ok(false)
+}
+
+pub fn file_exists_silenced(file_name: &str, file_extension: &str) -> Result<bool, AnalysisError> {
+    if file_extension == "txt" {
+        let file_path = format!("./books-txt/{}.{}", file_name, file_extension);
+        let file_exists = fs::exists(file_path).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!("El archivo txt no existe. [{}]", e))
+        })?;
+
+        return Ok(file_exists);
+    }
+
+    if file_extension == "pdf" {
+        let file_path = format!("./books-pdf/{}.{}", file_name, file_extension);
+        let file_exists = fs::exists(file_path).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!("El archivo pdf no existe. [{}]", e))
+        })?;
+
+        return Ok(file_exists);
+    }
+
+    Ok(false)
 }

@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{self, Error},
+    io::{self},
 };
 
 use crate::modules::cli_handlers::clear_screen;

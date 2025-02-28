@@ -1,7 +1,4 @@
-use std::{
-    fs::File,
-    io::{Error, Write},
-};
+use std::{fs::File, io::Write};
 
 use jiff::{Unit, Zoned};
 

@@ -11,10 +11,10 @@ def open_and_read_pdf(pdf_path):
         if doc == -1:
             print("Error al abrir el documento")
             return
-        print(f"Documento abierto correctamente")
-        print(tet.pcos_get_string(doc, "filename"))
+        #print(f"Documento abierto correctamente")
+        #print(tet.pcos_get_string(doc, "filename"))
         page_count = tet.pcos_get_number(doc, "length:pages")
-        print(page_count)
+        #print(page_count)
         if page_count != 1:
             print(f"El documento tiene {page_count} páginas. Este script está diseñado para un solo PDF de una página.")
             return

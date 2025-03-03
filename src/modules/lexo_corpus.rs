@@ -14,7 +14,7 @@ use crate::modules::{
     cli_handlers::clear_screen,
     exception_handlers::AnalysisError,
     file_handlers::{
-        document_extract_content, extract_csv_labeled_data, file_exists, file_exists_silenced, get_files_from_folder
+        document_extract_content, extract_csv_labeled_data, file_exists, file_exists_silenced, get_files_from_folder, initialize_warehouse_folders
     },
     lexical_analisis::{
         analyzer_content_dataset_opt, copy_interword_to_main, copy_words_to_main,
@@ -63,8 +63,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
         &mut file_log,
     )?;
 
-    let default_folder_data = "books-data";
-    let default_folder_plot = "books-plot";
+    
     let mut content = String::new();
     let mut file_name = String::new();
     let mut file_extension = String::new();
@@ -112,7 +111,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
             Err(e) => {
                 write_log_result(
                     format!(
-                        "\n[Error] Error al extraer el archivo: {}.{} , error: {}.",
+                        "\n[Error] Error al extraer el contenido del archivo: {}.{} , error: {}.",
                         file_name, file_extension, e,
                     ),
                     &mut file_log,
@@ -134,6 +133,13 @@ pub fn option_one() -> Result<(), AnalysisError> {
 
     let started = Instant::now();
     //clear_screen();
+    let (
+        folder_warehouse_data,
+        _,
+        folder_warehouse_zipf_plot,
+        folder_warehouse_heaps_plot,
+        folder_warehouse_heatmap_plot,
+    ) = initialize_warehouse_folders(&file_name)?;
 
     println!(
         "# Inicio del proceso de extracción y analisis del documento: {}.{} ...",
@@ -170,12 +176,12 @@ pub fn option_one() -> Result<(), AnalysisError> {
     println!("# Inicio de procesamiento del contenido...");
 
     get_zipf_law_results(&mut keys, &mut values);
-    create_csv_ordered(&keys, &values, &file_name, &default_folder_data);
+    create_csv_ordered(&keys, &values, &file_name, &folder_warehouse_data);
     let (vec_distance, vec_frequency) = create_csv_inter_words(
         &file_name,
         &inter_words_hashmaps,
         &inter_words_strings,
-        &default_folder_data,
+        &folder_warehouse_data,
     )
     .map_err(|e| {
         let _ = write_log_result(
@@ -198,7 +204,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
         &vec_distance,
         &vec_frequency,
         &inter_words_strings,
-        &default_folder_plot,
+        &folder_warehouse_heatmap_plot,
         &file_name,
         &file_extension,
     );
@@ -206,7 +212,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
     plot_heaps_law(
         &n_words_total_vec,
         &n_words_unique_vec,
-        &default_folder_plot,
+        &folder_warehouse_heaps_plot,
         &file_name,
     );
 
@@ -230,7 +236,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
         &log_ranking,
         &log_values,
         &zipfs_parameters,
-        &default_folder_plot,
+        &folder_warehouse_zipf_plot,
         &file_name,
     );
 
@@ -325,79 +331,16 @@ pub fn option_two() -> Result<(), AnalysisError> {
     let total_load_size = csv_content.len() as u64;
 
     let started = Instant::now();
-    let folder_warehouse = format!("./{}", file_name_dataset);
-    let folder_warehouse_data = format!("./{}/data", &file_name_dataset);
-    let folder_warehouse_plot = format!("./{}/plot", &file_name_dataset);
-    let folder_warehouse_zipf_plot = format!("{}/zipfs", &folder_warehouse_plot);
-    let folder_warehouse_heaps_plot = format!("{}/heaps", &folder_warehouse_plot);
-    let folder_warehouse_heatmap_plot = format!("{}/heatmaps", &folder_warehouse_plot);
-
-    let folder_warehouse_exist = fs::exists(&folder_warehouse).map_err(|e| {
-        AnalysisError::FileSystemOperationError(format!(
-            "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
-            e
-        ))
-    })?;
-    let folder_warehouse_data_exist = fs::exists(&folder_warehouse_data).map_err(|e| {
-        AnalysisError::FileSystemOperationError(format!(
-            "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
-            e
-        ))
-    })?;
-    let folder_warehouse_plot_exist = fs::exists(&folder_warehouse_plot).map_err(|e| {
-        AnalysisError::FileSystemOperationError(format!(
-            "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
-            e
-        ))
-    })?;
-
-    let folder_warehouse_zipfs_plot_exist =
-        fs::exists(&folder_warehouse_zipf_plot).map_err(|e| {
-            AnalysisError::FileSystemOperationError(format!(
-                "Error al verificar la carpeta zipf dentro de plot, la ruta no existe ó permisos insuficientes {}",
-                e
-            ))
-        })?;
-
-    let folder_warehouse_heaps_plot_exist =
-        fs::exists(&folder_warehouse_heaps_plot).map_err(|e| {
-            AnalysisError::FileSystemOperationError(format!(
-                "Error al verificar la carpeta heaps dentro de plot, la ruta no existe ó permisos insuficientes {}",
-                e
-            ))
-        })?;
-
-    let folder_warehouse_heatmaps_plot_exist =
-        fs::exists(&folder_warehouse_heatmap_plot).map_err(|e| {
-            AnalysisError::FileSystemOperationError(format!(
-                "Error al verificar la carpeta heatmaps dentro de plot, la ruta no existe ó permisos insuficientes {}",
-                e
-            ))
-        })?;
-
-    if !folder_warehouse_exist {
-        fs::create_dir(&folder_warehouse).unwrap();
-    }
-
-    if !folder_warehouse_data_exist {
-        fs::create_dir(&folder_warehouse_data).unwrap();
-    }
-
-    if !folder_warehouse_plot_exist {
-        fs::create_dir(&folder_warehouse_plot).unwrap();
-    }
-
-    if !folder_warehouse_zipfs_plot_exist {
-        fs::create_dir(&folder_warehouse_zipf_plot).unwrap();
-    }
-
-    if !folder_warehouse_heaps_plot_exist {
-        fs::create_dir(&folder_warehouse_heaps_plot).unwrap();
-    }
-
-    if !folder_warehouse_heatmaps_plot_exist {
-        fs::create_dir(&folder_warehouse_heatmap_plot).unwrap();
-    }
+    
+    //Inicialización de carpetas esenciales
+    let dataset_folder_result = format!("{}-{}",&file_name_dataset, "dataset");
+    let (
+        folder_warehouse_data,
+        folder_warehouse_plot,
+        folder_warehouse_zipf_plot,
+        folder_warehouse_heaps_plot,
+        folder_warehouse_heatmap_plot,
+    ) = initialize_warehouse_folders(&dataset_folder_result)?;
 
     let pb = ProgressBar::new(total_load_size);
     pb.set_style(

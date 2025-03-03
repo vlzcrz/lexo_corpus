@@ -1,5 +1,4 @@
 pub mod cli_handlers;
-pub mod csv_handlers;
 pub mod debug;
 pub mod exception_handlers;
 pub mod file_handlers;

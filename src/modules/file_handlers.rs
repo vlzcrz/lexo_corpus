@@ -424,3 +424,89 @@ pub fn file_exists_silenced(file_name: &str, file_extension: &str) -> Result<boo
 
     Ok(false)
 }
+
+pub fn initialize_warehouse_folders(
+    file_name_dataset: &str,
+) -> Result<(String, String, String, String, String), AnalysisError> {
+    let folder_warehouse = format!("./{}", file_name_dataset);
+    let folder_warehouse_data = format!("{}/data", &folder_warehouse);
+    let folder_warehouse_plot = format!("{}/plot", &folder_warehouse);
+    let folder_warehouse_zipf_plot = format!("{}/zipfs", &folder_warehouse_plot);
+    let folder_warehouse_heaps_plot = format!("{}/heaps", &folder_warehouse_plot);
+    let folder_warehouse_heatmap_plot = format!("{}/heatmaps", &folder_warehouse_plot);
+
+    let folder_warehouse_exist = fs::exists(&folder_warehouse).map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
+            e
+        ))
+    })?;
+    let folder_warehouse_data_exist = fs::exists(&folder_warehouse_data).map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
+            e
+        ))
+    })?;
+    let folder_warehouse_plot_exist = fs::exists(&folder_warehouse_plot).map_err(|e| {
+        AnalysisError::FileSystemOperationError(format!(
+            "Error al verificar la carpeta raiz, la ruta no existe ó permisos insuficientes {}",
+            e
+        ))
+    })?;
+
+    let folder_warehouse_zipfs_plot_exist =
+        fs::exists(&folder_warehouse_zipf_plot).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!(
+                "Error al verificar la carpeta zipf dentro de plot, la ruta no existe ó permisos insuficientes {}",
+                e
+            ))
+        })?;
+
+    let folder_warehouse_heaps_plot_exist =
+        fs::exists(&folder_warehouse_heaps_plot).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!(
+                "Error al verificar la carpeta heaps dentro de plot, la ruta no existe ó permisos insuficientes {}",
+                e
+            ))
+        })?;
+
+    let folder_warehouse_heatmaps_plot_exist =
+        fs::exists(&folder_warehouse_heatmap_plot).map_err(|e| {
+            AnalysisError::FileSystemOperationError(format!(
+                "Error al verificar la carpeta heatmaps dentro de plot, la ruta no existe ó permisos insuficientes {}",
+                e
+            ))
+        })?;
+
+    if !folder_warehouse_exist {
+        fs::create_dir(&folder_warehouse).unwrap();
+    }
+
+    if !folder_warehouse_data_exist {
+        fs::create_dir(&folder_warehouse_data).unwrap();
+    }
+
+    if !folder_warehouse_plot_exist {
+        fs::create_dir(&folder_warehouse_plot).unwrap();
+    }
+
+    if !folder_warehouse_zipfs_plot_exist {
+        fs::create_dir(&folder_warehouse_zipf_plot).unwrap();
+    }
+
+    if !folder_warehouse_heaps_plot_exist {
+        fs::create_dir(&folder_warehouse_heaps_plot).unwrap();
+    }
+
+    if !folder_warehouse_heatmaps_plot_exist {
+        fs::create_dir(&folder_warehouse_heatmap_plot).unwrap();
+    }
+
+    Ok((
+        folder_warehouse_data,
+        folder_warehouse_plot,
+        folder_warehouse_zipf_plot,
+        folder_warehouse_heaps_plot,
+        folder_warehouse_heatmap_plot,
+    ))
+}

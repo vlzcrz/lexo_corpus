@@ -189,18 +189,35 @@ pub fn create_csv_inter_words(
     Ok((vec_distance, vec_frequency))
 }
 
-type DocumentFile = (String, i32);
+type RowExtractSingular = (String, i32);
 
 pub fn extract_csv_labeled_data(
     file_name: &str,
     file_extension: &str,
 ) -> Result<Vec<(String, i32)>, Error> {
-    let file_path = format!("./labeled-data/{}.{}", file_name, file_extension);
+    let file_path = format!("./labeled-data-singular/{}.{}", file_name, file_extension);
     let file = File::open(file_path).unwrap();
     let mut rdr = csv::Reader::from_reader(file);
     let mut csv_content: Vec<(String, i32)> = Vec::new();
     for result in rdr.deserialize() {
-        let record: DocumentFile = result.unwrap();
+        let record: RowExtractSingular = result.unwrap();
+        csv_content.push(record);
+    }
+    Ok(csv_content)
+}
+
+type RowExtractMultiple = (String, i32, String);
+
+pub fn extract_csv_labeled_data_multiple(
+    file_name: &str,
+    file_extension: &str,
+) -> Result<Vec<(String, i32, String)>, Error> {
+    let file_path = format!("./labeled-data-multiple/{}.{}", file_name, file_extension);
+    let file = File::open(file_path).unwrap();
+    let mut rdr = csv::Reader::from_reader(file);
+    let mut csv_content: Vec<(String, i32, String)> = Vec::new();
+    for result in rdr.deserialize() {
+        let record: RowExtractMultiple = result.unwrap();
         csv_content.push(record);
     }
     Ok(csv_content)
@@ -296,7 +313,7 @@ pub fn document_extract_content(
             Ok(_) => {
                 println!(
                     "\n{} -> Problemas al extraer el contenido, intentando alternativa TET ...",
-                    " Atención ".on_yellow()
+                    " Atención ".on_yellow().bold()
                 );
 
                 division_pdf(file_name)?;
@@ -321,7 +338,7 @@ pub fn document_extract_content(
             }
             Err(error) => {
                 println!(
-                    "\n{} -> Problemas al extraer el contenido, intentando alternativa TET ... [{}]", " Atención ".on_yellow(),
+                    "\n{} -> Problemas al extraer el contenido, intentando alternativa TET ... [{}]", " Atención ".on_yellow().bold(),
                     error
                 );
 
@@ -372,7 +389,7 @@ pub fn file_exists(file_name: &str, file_extension: &str) -> Result<bool, Analys
                 "Error de ejecución".on_red()
             );
         } else {
-            println!("{} -> Archivo encontrado.", "Completado".on_green());
+            println!("{}", " Archivo encontrado. ".on_green());
         }
 
         return Ok(file_exists);
@@ -509,4 +526,36 @@ pub fn initialize_warehouse_folders(
         folder_warehouse_heaps_plot,
         folder_warehouse_heatmap_plot,
     ))
+}
+
+pub fn initialize_main_folders() {
+    let folder_fracts_exists = fs::exists("./books-fracts").unwrap();
+    if !folder_fracts_exists {
+        fs::create_dir("./books-fracts").unwrap();
+    }
+
+    let folder_log_exists = fs::exists("./logs").unwrap();
+    if !folder_log_exists {
+        fs::create_dir("./logs").unwrap();
+    }
+
+    let folder_books_pdf_exists = fs::exists("./books-pdf").unwrap();
+    if !folder_books_pdf_exists {
+        fs::create_dir("./books-pdf").unwrap();
+    }
+
+    let folder_books_txt_exists = fs::exists("./books-txt").unwrap();
+    if !folder_books_txt_exists {
+        fs::create_dir("./books-txt").unwrap();
+    }
+
+    let folder_labeled_datasets_exists = fs::exists("./labeled-data-singular").unwrap();
+    if !folder_labeled_datasets_exists {
+        fs::create_dir("./labeled-data-singular").unwrap();
+    }
+
+    let folder_labeled_datasets_exists = fs::exists("./labeled-data-multiple").unwrap();
+    if !folder_labeled_datasets_exists {
+        fs::create_dir("./labeled-data-multiple").unwrap();
+    }
 }

@@ -1,38 +1,25 @@
-use std::{fs, io};
+use std::io;
 
 use owo_colors::OwoColorize;
 
 use crate::modules::{
     debug::debug_menu::debug_menu,
-    lexo_corpus::{option_one, option_two},
+    file_handlers::initialize_main_folders,
+    lexo_corpus::{option_one, option_three, option_two},
 };
 
 pub fn main_menu() {
     let mut user_input = String::new();
-    let folder_fracts_exists = fs::exists("./books-fracts").unwrap();
-    if !folder_fracts_exists {
-        fs::create_dir("./books-fracts").unwrap();
-    }
-    let folder_data_exists = fs::exists("./books-data").unwrap();
-    if !folder_data_exists {
-        fs::create_dir("./books-data").unwrap();
-    }
-    let folder_plot_exists = fs::exists("./books-plot").unwrap();
-    if !folder_plot_exists {
-        fs::create_dir("./books-plot").unwrap();
-    }
-    let folder_log_exists = fs::exists("./logs").unwrap();
-    if !folder_log_exists {
-        fs::create_dir("./logs").unwrap();
-    }
+    initialize_main_folders();
 
     while user_input.trim() != "0" {
         println!(
             "
 [LEXO CORPUS PR-CLI] Menú principal
 1.- Analizar documento de manera individual.
-2.- Analizar lote de documentos etiquetados (csv). 
-3.- [DEBUG] Debug Menú fn.
+2.- Analizar lote de documentos etiquetados para un presidente (csv). 
+3.- Analizar lote de documentos etiquetados para varios presidentes (csv). 
+4.- [DEBUG] Debug Menú fn.
 0.- Salir.
         "
         );
@@ -64,6 +51,17 @@ pub fn main_menu() {
         }
 
         if user_input.trim() == "3" {
+            match option_three() {
+                Ok(_) => {
+                    println!("\n{}", " Ejecución finalizada ".on_green().bold())
+                }
+                Err(e) => {
+                    eprintln!("\n{} -> {}", " Error en la ejecución ".on_red().bold(), e);
+                }
+            }
+        }
+
+        if user_input.trim() == "4" {
             debug_menu();
         }
     }

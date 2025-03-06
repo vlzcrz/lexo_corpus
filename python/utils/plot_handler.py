@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import seaborn as sns
 import numpy as np
+import pandas as pd
 
 def lineplot_heaps_law(x_values, y_values, output_path, file_name):
     output_path_formatted = os.path.join(output_path, file_name)
@@ -77,6 +78,46 @@ def lineplot_csv_dataset(title, x_label, y_label, x_values, y_values, output_pat
     
     plt.grid(True, linestyle=":", linewidth=0.8, alpha=0.5)
     
+
+    plt.savefig(output_path_formatted, dpi=150, bbox_inches="tight")
+    plt.close('all')
+
+def lineplot_csv_dataset_multiple(title, x_label, y_label, president_legend, x_values, y_values, output_path, file_name):
+    
+    df = pd.DataFrame({
+        'Year': x_values,
+        'Index': y_values,
+        'President': president_legend
+    })
+    
+    output_path_formatted = os.path.join(output_path, file_name)
+
+    plt.figure(figsize=(12, 7))
+    sns.set_theme(style="whitegrid")
+    
+    presidents = df['President'].unique()
+    
+    color_palette = sns.color_palette("husl", len(presidents))
+    color_dict = dict(zip(presidents, color_palette))
+    
+    # Graficar la línea completa con transparencia por segmentos
+    plt.plot(df['Year'], df['Index'], color='gray', alpha=0.3, linestyle='--')
+    
+    # Graficar líneas por presidente
+    for president in presidents:
+        president_data = df[df['President'] == president]
+        plt.plot(president_data['Year'], president_data['Index'], 
+                 label=president, 
+                 color=color_dict[president], 
+                 marker='o')
+    
+    # Personalizar el gráfico
+    plt.xlabel(x_label, fontsize=12, color="darkslategray", labelpad=15)
+    plt.ylabel(y_label, fontsize=12, color="darkslategray", labelpad=15)
+    plt.title(f'{title}', fontsize=16, fontweight='bold', color="darkslategray")
+    
+    plt.legend(title='Presidents')
+    plt.grid(True, linestyle='--', alpha=0.7)
 
     plt.savefig(output_path_formatted, dpi=150, bbox_inches="tight")
     plt.close('all')

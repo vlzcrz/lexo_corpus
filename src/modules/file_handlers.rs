@@ -8,6 +8,8 @@ use std::{
 use owo_colors::OwoColorize;
 use pyo3::{ffi::c_str, prelude::*};
 
+use crate::modules::tesseract_handlers::read_pdf_tesseract;
+
 use super::exception_handlers::AnalysisError;
 
 // una función que permita leer el documento pdf
@@ -261,7 +263,15 @@ pub fn get_files_from_folder(folder_name: &str) -> Result<Vec<(String, String)>,
         files_and_extensions_tuple.push((file_name.to_string(), file_extension.to_string()));
     }
 
-    files_and_extensions_tuple.sort_by(|a, b| a.0.cmp(&b.0));
+    // Ordenamiento numérico
+    files_and_extensions_tuple.sort_by_key(|(name, _)| {
+        name.chars()
+            .filter(|c| c.is_numeric()) // Extrae solo los números
+            .collect::<String>() // Convierte a String
+            .parse::<u32>() // Convierte a número
+            .unwrap_or(0) // Si falla, usa 0
+    });
+
     Ok(files_and_extensions_tuple)
 }
 
@@ -296,6 +306,33 @@ pub fn read_tet_document_pdf(file_name: &str) -> Result<String, Error> {
     });
 
     Ok(content)
+}
+
+pub fn page_snapshots_by_pdf_pages(file_name: &str) -> Result<(), AnalysisError> {
+    let file_path = format!("books-pdf/{}.pdf", file_name);
+    let code = c_str!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/python/utils/file_handler.py"
+    )));
+
+    Python::with_gil(|py| {
+        let module = PyModule::from_code(py, code, c_str!("file_handler"), c_str!("file_handler"))
+            .map_err(|e| {
+                AnalysisError::ProcessingError(format!("Error al cargar el módulo Python. {}", e))
+            })?;
+
+        let function = module.getattr("page_snapshots_by_pdf_pages").map_err(|e| {
+            AnalysisError::ProcessingError(format!(
+                "Error al obtener la función page_snapshots_by_pdf_pages. {}",
+                e
+            ))
+        })?;
+
+        function.call1((file_path,)).unwrap();
+
+        println!("Snapshots PDF exitoso");
+        Ok(())
+    })
 }
 
 pub fn document_extract_content(
@@ -361,6 +398,42 @@ pub fn document_extract_content(
                         String::new()
                     }
                 }
+            }
+        };
+        Ok(content)
+    } else {
+        println!("Archivo no admitido. debe tener extension 'txt' ó 'pdf' ");
+        Ok(String::new())
+    }
+}
+
+pub fn document_extract_content_tesseract_opt(
+    file_name: &str,
+    file_extension: &str,
+) -> Result<String, AnalysisError> {
+    if file_extension == "txt" {
+        return read_document_txt(file_name);
+    }
+
+    if file_extension == "pdf" {
+        let content = match read_document_pdf(file_name) {
+            Ok(content) if !content.is_empty() => content,
+            // Se tienen que realizar ambos casos, ya que la lectura del pdf puede realizarse y no extraerse ningun contenido o bien falla al abrir el pdf
+            Ok(_) => {
+                println!(
+                    "\n{} -> Problemas al extraer el contenido, intentando alternativa Tesseract-ocr ...",
+                    " Atención ".on_yellow().bold()
+                );
+
+                read_pdf_tesseract(file_name).unwrap()
+            }
+            Err(error) => {
+                println!(
+                    "\n{} -> Problemas al extraer el contenido, intentando alternativa Tesseract-ocr ... [{}]", " Atención ".on_yellow().bold(),
+                    error
+                );
+
+                read_pdf_tesseract(file_name).unwrap()
             }
         };
         Ok(content)

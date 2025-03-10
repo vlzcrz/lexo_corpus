@@ -1,7 +1,7 @@
 use std::{fs, io};
 
 use crate::modules::debug::debug_text_extracts::{
-    read_document_pdf_debug, read_document_txt_debug, read_pdf_tet,
+    read_document_pdf_debug, read_document_txt_debug, read_pdf_tesseract_debug, read_pdf_tet,
 };
 
 pub fn debug_menu() {
@@ -30,6 +30,7 @@ pub fn debug_menu() {
 1.- Mostrar extracción de texto archivos txt (read_file [OS bytes])
 2.- Mostrar extracción de texto archivos pdf (pdf extract [Rust Crate])
 3.- Mostrar extracción de texto archivos pdf (TET lib [Python Lib])
+4.- Mostrar extracción de texto archivos pdf (Tesseract-ocr (v5) [Program executable])
 0.- Salir.
         "
         );
@@ -37,20 +38,34 @@ pub fn debug_menu() {
         io::stdin().read_line(&mut user_input).unwrap();
 
         if user_input.trim() == "1" {
-            let content = read_document_txt_debug().unwrap();
-            println!("[DEBUG FUNCTION read_document_txt: \nExtract: {}", content);
+            let _ = read_document_txt_debug().unwrap();
+            println!(
+                "[DEBUG FUNCTION read_document_txt: \nExtract: {}",
+                "Completed!"
+            );
         }
 
         if user_input.trim() == "2" {
-            let content = read_document_pdf_debug().unwrap();
-            println!("[DEBUG FUNCTION read_document_pdf: \nExtract: {}", content);
+            let _ = read_document_pdf_debug().unwrap();
+            println!(
+                "[DEBUG FUNCTION read_document_pdf: \nExtract: {}",
+                "Completed!"
+            );
         }
 
         if user_input.trim() == "3" {
-            let content = read_pdf_tet().unwrap();
+            let _ = read_pdf_tet().unwrap();
             println!(
                 "[DEBUG FUNCTION read_tet_document_pdf: \nExtract: {}",
-                content
+                "Completed!"
+            );
+        }
+
+        if user_input.trim() == "4" {
+            let _ = read_pdf_tesseract_debug().unwrap();
+            println!(
+                "[DEBUG FUNCTION read_pdf_tesseract: \nExtract: {}",
+                "Completed!"
             );
         }
     }

@@ -14,7 +14,7 @@ use crate::modules::{
     cli_handlers::clear_screen,
     exception_handlers::AnalysisError,
     file_handlers::{
-        document_extract_content, extract_csv_labeled_data, extract_csv_labeled_data_multiple, file_exists, file_exists_silenced, get_files_from_folder, initialize_warehouse_folders
+        document_extract_content, document_extract_content_tesseract_opt, extract_csv_labeled_data, extract_csv_labeled_data_multiple, file_exists, file_exists_silenced, get_files_from_folder, initialize_warehouse_folders
     },
     lexical_analisis::{
         analyzer_content_dataset_opt, copy_interword_to_main, copy_words_to_main,
@@ -33,7 +33,7 @@ use super::{
     zipfs_handlers::{apply_to_log10, get_zipf_law_results},
 };
 
-pub fn option_one() -> Result<(), AnalysisError> {
+pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
     let mut file_log = create_log_instance().map_err(|e| {
         AnalysisError::FileSystemOperationError(format!(
             "Error al crear el log del proceso 'Option One': {}",
@@ -101,25 +101,50 @@ pub fn option_one() -> Result<(), AnalysisError> {
             continue;
         }
 
-        match document_extract_content(&file_name, &file_extension) {
-            Ok(extracted_content) => {
-                did_read = true;
-                content = extracted_content
-                    .to_lowercase()
-                    .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
-            }
-            Err(e) => {
-                write_log_result(
-                    format!(
-                        "\n[Error] Error al extraer el contenido del archivo: {}.{} , error: {}.",
-                        file_name, file_extension, e,
-                    ),
-                    &mut file_log,
-                )?;
-                file_path_input = String::new();
-                continue;
-            }
-        };
+        if tesseract_active {
+            match document_extract_content_tesseract_opt(&file_name, &file_extension) {
+                Ok(extracted_content) => {
+                    did_read = true;
+                    content = extracted_content
+                        .to_lowercase()
+                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                }
+                Err(e) => {
+                    write_log_result(
+                        format!(
+                            "\n[Error] Error al extraer el contenido del archivo: {}.{} , error: {}.",
+                            file_name, file_extension, e,
+                        ),
+                        &mut file_log,
+                    )?;
+                    file_path_input = String::new();
+                    continue;
+                }
+            };
+        } else {
+            // Alternativa TET
+            match document_extract_content(&file_name, &file_extension) {
+                Ok(extracted_content) => {
+                    did_read = true;
+                    content = extracted_content
+                        .to_lowercase()
+                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                }
+                Err(e) => {
+                    write_log_result(
+                        format!(
+                            "\n[Error] Error al extraer el contenido del archivo: {}.{} , error: {}.",
+                            file_name, file_extension, e,
+                        ),
+                        &mut file_log,
+                    )?;
+                    file_path_input = String::new();
+                    continue;
+                }
+            };
+        }
+        
+        
     }
 
     // LOG
@@ -252,7 +277,7 @@ pub fn option_one() -> Result<(), AnalysisError> {
     Ok(())
 }
 
-pub fn option_two() -> Result<(), AnalysisError> {
+pub fn option_two(tesseract_active: bool) -> Result<(), AnalysisError> {
     let mut input = String::new();
     let mut valid_input = false;
     let mut file_name_dataset = String::new();
@@ -445,38 +470,75 @@ pub fn option_two() -> Result<(), AnalysisError> {
                 ))
             })?;
 
-        let content = match document_extract_content(&file_name, &file_extension) {
-            Ok(content) => {
-                // LOG
-                write_log_result(
-                    format!(
-                        "\n[Completado] Se ha extraido el contenido sin problemas. {}.{} ",
-                        file_name, file_extension
-                    ),
-                    &mut file_log,
-                )?;
-                // ENDLOG
-                content
-                    .to_lowercase()
-                    .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
-            }
-            Err(_) => {
-                // LOG
-                write_log_result(
-                    format!(
-                        "\n[Error] Error en la extracción del contenido. {}.{}",
-                        file_name, file_extension
-                    ),
-                    &mut file_log,
-                )?;
-                // ENDLOG
-                let mut processed_file_status: Vec<CellStruct> = Vec::new();
-                processed_file_status.push(file.clone().cell());
-                processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
-                processed_file_status_table.push(processed_file_status);
-                String::new()
-            }
-        };
+        let content: String;
+        if tesseract_active {
+            content = match document_extract_content_tesseract_opt(&file_name, &file_extension) {
+                Ok(content) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Completado] Se ha extraido el contenido sin problemas. {}.{} ",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    content
+                        .to_lowercase()
+                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                }
+                Err(_) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Error] Error en la extracción del contenido. {}.{}",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    let mut processed_file_status: Vec<CellStruct> = Vec::new();
+                    processed_file_status.push(file.clone().cell());
+                    processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+                    processed_file_status_table.push(processed_file_status);
+                    String::new()
+                }
+            };
+        } else {
+            content = match document_extract_content(&file_name, &file_extension) {
+                Ok(content) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Completado] Se ha extraido el contenido sin problemas. {}.{} ",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    content
+                        .to_lowercase()
+                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                }
+                Err(_) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Error] Error en la extracción del contenido. {}.{}",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    let mut processed_file_status: Vec<CellStruct> = Vec::new();
+                    processed_file_status.push(file.clone().cell());
+                    processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+                    processed_file_status_table.push(processed_file_status);
+                    String::new()
+                }
+            };
+        }
+        
 
         let (n_words_total_vec, n_words_unique_vec) = analyzer_content_dataset_opt(
             content,
@@ -736,7 +798,7 @@ pub fn option_two() -> Result<(), AnalysisError> {
     Ok(())
 }
 
-pub fn option_three() -> Result<(), AnalysisError> {
+pub fn option_three(tesseract_active: bool) -> Result<(), AnalysisError> {
     let mut input = String::new();
     let mut valid_input = false;
     let mut file_name_dataset = String::new();
@@ -927,38 +989,75 @@ pub fn option_three() -> Result<(), AnalysisError> {
                 ))
             })?;
 
-        let content = match document_extract_content(&file_name, &file_extension) {
-            Ok(content) => {
-                // LOG
-                write_log_result(
-                    format!(
-                        "\n[Completado] Se ha extraido el contenido sin problemas. {}.{} ",
-                        file_name, file_extension
-                    ),
-                    &mut file_log,
-                )?;
-                // ENDLOG
-                content
-                    .to_lowercase()
-                    .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
-            }
-            Err(_) => {
-                // LOG
-                write_log_result(
-                    format!(
-                        "\n[Error] Error en la extracción del contenido. {}.{}",
-                        file_name, file_extension
-                    ),
-                    &mut file_log,
-                )?;
-                // ENDLOG
-                let mut processed_file_status: Vec<CellStruct> = Vec::new();
-                processed_file_status.push(file.clone().cell());
-                processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
-                processed_file_status_table.push(processed_file_status);
-                String::new()
-            }
-        };
+        let content: String;
+        if tesseract_active {
+            content = match document_extract_content_tesseract_opt(&file_name, &file_extension) {
+                Ok(content) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Completado] Se ha extraido el contenido sin problemas. {}.{} ",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    content
+                        .to_lowercase()
+                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                }
+                Err(_) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Error] Error en la extracción del contenido. {}.{}",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    let mut processed_file_status: Vec<CellStruct> = Vec::new();
+                    processed_file_status.push(file.clone().cell());
+                    processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+                    processed_file_status_table.push(processed_file_status);
+                    String::new()
+                }
+            };
+        } else {
+            content = match document_extract_content(&file_name, &file_extension) {
+                Ok(content) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Completado] Se ha extraido el contenido sin problemas. {}.{} ",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    content
+                        .to_lowercase()
+                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                }
+                Err(_) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Error] Error en la extracción del contenido. {}.{}",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    let mut processed_file_status: Vec<CellStruct> = Vec::new();
+                    processed_file_status.push(file.clone().cell());
+                    processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+                    processed_file_status_table.push(processed_file_status);
+                    String::new()
+                }
+            };
+        }
+        
 
         let (n_words_total_vec, n_words_unique_vec) = analyzer_content_dataset_opt(
             content,

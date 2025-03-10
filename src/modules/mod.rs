@@ -9,4 +9,6 @@ pub mod log_handlers;
 pub mod menu;
 pub mod merge_sort_utils;
 pub mod plot_handlers;
+pub mod tesseract_handlers;
+pub mod tesseract_menu;
 pub mod zipfs_handlers;

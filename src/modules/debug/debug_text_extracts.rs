@@ -11,7 +11,7 @@ use pyo3::{
     Python,
 };
 
-use crate::modules::file_handlers::{clean_folder, division_pdf, get_files_from_folder};
+use crate::modules::{debug::file_handlers_debug::create_and_write, exception_handlers::AnalysisError, file_handlers::{clean_folder, division_pdf, get_files_from_folder, page_snapshots_by_pdf_pages}, tesseract_handlers::read_document_pdf_tesseract};
 
 pub fn input_doc_file() -> Result<String, Error> {
     let mut file_path_input = String::new();
@@ -60,13 +60,14 @@ pub fn read_document_pdf_debug() -> Result<String, OutputError> {
         );
         er
     })?;
-
+    let output_path = format!("./books-txt/converted(pdf extract)-{}.txt", input_file_name);
+    let _ = create_and_write(&content, &output_path);
     Ok(content)
 }
 
 pub fn read_tet_document_pdf_debug(file_name: &str) -> Result<String, Error> {
     let file_path = format!("./books-fracts/{}.pdf", file_name);
-
+    
     let code = c_str!(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/python/utils/pdf_handler.py"
@@ -89,8 +90,15 @@ pub fn read_tet_document_pdf_debug(file_name: &str) -> Result<String, Error> {
         let module = PyModule::from_code(py, code, c_str!("pdf_handler"), c_str!("TET")).unwrap();
         let function = module.getattr("open_and_read_pdf").unwrap();
 
+        let text = match function.call1((file_path,)) {
+            Ok(result) => result.extract().unwrap_or(" ".to_string()),
+            Err(_) => " ".to_string(), // Si la llamada a Python falla, también devuelve " "
+        };
+        /* 
         let result = function.call1((file_path,)).unwrap();
-        let text: String = result.extract().unwrap();
+        let text: String = result.extract().unwrap_or(" ".to_string());
+
+        */
         return text;
     });
 
@@ -108,6 +116,8 @@ pub fn read_pdf_tet() -> Result<String, Error> {
     if input_file_name == "0" {
         return Ok("0".to_string());
     }
+    clean_folder("books-fracts");
+
     division_pdf(input_file_name.as_str()).unwrap();
 
     let content = match get_files_from_folder("books-fracts") {
@@ -127,6 +137,38 @@ pub fn read_pdf_tet() -> Result<String, Error> {
             String::new()
         }
     };
+    let output_path = format!("./books-txt/converted(TET lib)-{}.txt", input_file_name);
+    let _ = create_and_write(&content, &output_path);
 
+    clean_folder("books-fracts");
     Ok(content)
 }
+
+
+pub fn read_pdf_tesseract_debug() -> Result<String, AnalysisError> {
+    println!(
+        "El scope para esta función esta solo abarcando los archivos de la carpeta 'books-pdf'.\n {}",
+        "No especifique extensión de archivo".on_yellow()
+        
+    );
+    
+    let input_file_name = input_doc_file().unwrap();
+    if input_file_name == "0" {
+        return Ok("0".to_string());
+    }
+    clean_folder("books-snaps");
+    page_snapshots_by_pdf_pages(&input_file_name).unwrap();
+    
+    let content = read_document_pdf_tesseract()?;
+    let output_path = format!("./books-txt/converted(Tesseract-ocr-v5)-{}.txt", input_file_name);
+    let _ = create_and_write(&content, &output_path);
+
+    clean_folder("books-snaps");
+    Ok(content)
+    /* 
+    let dum = String::new();
+    Ok(dum)
+    */
+}
+
+

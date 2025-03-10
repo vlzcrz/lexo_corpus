@@ -23,6 +23,7 @@ def open_and_read_pdf(pdf_path):
         
         
         text = tet.get_text(page)
+        #print(text)
         tet.close_page(page)
        
         

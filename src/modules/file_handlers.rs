@@ -7,10 +7,14 @@ use std::{
 
 use owo_colors::OwoColorize;
 use pyo3::{ffi::c_str, prelude::*};
+use regex::Regex;
+use symspell::{AsciiStringStrategy, SymSpell};
 
-use crate::modules::tesseract_handlers::read_pdf_tesseract;
+use crate::modules::{
+    rapid_ocr_handlers::read_document_pdf_rapid_ocr, tesseract_handlers::read_pdf_tesseract,
+};
 
-use super::exception_handlers::AnalysisError;
+use super::{exception_handlers::AnalysisError, lexical_analisis::symspell_processing};
 
 // una función que permita leer el documento pdf
 pub fn read_document_pdf(file_name: &str) -> Result<String, AnalysisError> {
@@ -308,7 +312,7 @@ pub fn read_tet_document_pdf(file_name: &str) -> Result<String, Error> {
     Ok(content)
 }
 
-pub fn page_snapshots_by_pdf_pages(file_name: &str) -> Result<(), AnalysisError> {
+pub fn page_snapshots_all_pdf_pages(file_name: &str) -> Result<(), AnalysisError> {
     let file_path = format!("books-pdf/{}.pdf", file_name);
     let code = c_str!(include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -321,16 +325,17 @@ pub fn page_snapshots_by_pdf_pages(file_name: &str) -> Result<(), AnalysisError>
                 AnalysisError::ProcessingError(format!("Error al cargar el módulo Python. {}", e))
             })?;
 
-        let function = module.getattr("page_snapshots_by_pdf_pages").map_err(|e| {
-            AnalysisError::ProcessingError(format!(
-                "Error al obtener la función page_snapshots_by_pdf_pages. {}",
-                e
-            ))
-        })?;
+        let function = module
+            .getattr("page_snapshots_all_pdf_pages")
+            .map_err(|e| {
+                AnalysisError::ProcessingError(format!(
+                    "Error al obtener la función page_snapshots_all_pdf_pages. {}",
+                    e
+                ))
+            })?;
 
         function.call1((file_path,)).unwrap();
 
-        println!("Snapshots PDF exitoso");
         Ok(())
     })
 }
@@ -410,13 +415,14 @@ pub fn document_extract_content(
 pub fn document_extract_content_tesseract_opt(
     file_name: &str,
     file_extension: &str,
+    symspell: &SymSpell<AsciiStringStrategy>,
 ) -> Result<String, AnalysisError> {
     if file_extension == "txt" {
         return read_document_txt(file_name);
     }
 
     if file_extension == "pdf" {
-        let content = match read_document_pdf(file_name) {
+        let mut content = match read_document_pdf(file_name) {
             Ok(content) if !content.is_empty() => content,
             // Se tienen que realizar ambos casos, ya que la lectura del pdf puede realizarse y no extraerse ningun contenido o bien falla al abrir el pdf
             Ok(_) => {
@@ -436,6 +442,54 @@ pub fn document_extract_content_tesseract_opt(
                 read_pdf_tesseract(file_name).unwrap()
             }
         };
+
+        let re = Regex::new(r"[^A-Za-z0-9'\s]").unwrap();
+        content = re.replace_all(&content, "").to_string().to_lowercase();
+        content = symspell_processing(content, symspell)?;
+        Ok(content)
+    } else {
+        println!("Archivo no admitido. debe tener extension 'txt' ó 'pdf' ");
+        Ok(String::new())
+    }
+}
+
+pub fn document_extract_content_rapid_ocr_opt(
+    file_name: &str,
+    file_extension: &str,
+    symspell: &SymSpell<AsciiStringStrategy>,
+) -> Result<String, AnalysisError> {
+    if file_extension == "txt" {
+        return read_document_txt(file_name);
+    }
+
+    if file_extension == "pdf" {
+        let mut content = match read_document_pdf(file_name) {
+            Ok(content) if !content.is_empty() => content,
+            // Se tienen que realizar ambos casos, ya que la lectura del pdf puede realizarse y no extraerse ningun contenido o bien falla al abrir el pdf
+            Ok(_) => {
+                println!(
+                    "\n{} -> Problemas al extraer el contenido, intentando alternativa Rapid OCR ...",
+                    " Atención ".on_yellow().bold()
+                );
+                println!(
+                    "\n{}: Demora entre 10seg a 1min por pagina con procesado CPU (8 nucleos - 4.1 GHz) ",
+                    " Rapid OCR ".on_yellow().bold()
+                );
+                read_document_pdf_rapid_ocr(file_name).unwrap()
+            }
+            Err(error) => {
+                println!(
+                    "\n{} -> Falló alternativa Rapid OCR ... [{}]",
+                    " Atención ".on_red().bold(),
+                    error
+                );
+                String::new()
+            }
+        };
+
+        let re = Regex::new(r"[^A-Za-z0-9'\s]").unwrap();
+        content = re.replace_all(&content, "").to_string().to_lowercase();
+        content = symspell_processing(content, symspell)?;
         Ok(content)
     } else {
         println!("Archivo no admitido. debe tener extension 'txt' ó 'pdf' ");
@@ -631,4 +685,56 @@ pub fn initialize_main_folders() {
     if !folder_labeled_datasets_exists {
         fs::create_dir("./labeled-data-multiple").unwrap();
     }
+}
+
+pub fn page_snapshots_by_pdf_page(file_name: &str, page: u16) -> Result<(), AnalysisError> {
+    let file_path = format!("./books-pdf/{}.pdf", file_name);
+    let code = c_str!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/python/utils/file_handler.py"
+    )));
+
+    Python::with_gil(|py| {
+        let module = PyModule::from_code(py, code, c_str!("file_handler"), c_str!("file_handler"))
+            .map_err(|e| {
+                AnalysisError::ProcessingError(format!("Error al cargar el módulo Python. {}", e))
+            })?;
+
+        let function = module.getattr("page_snapshots_by_pdf_page").map_err(|e| {
+            AnalysisError::ProcessingError(format!(
+                "Error al obtener la función page_snapshots_by_pdf_page. {}",
+                e
+            ))
+        })?;
+
+        function.call1((file_path, page)).unwrap();
+
+        Ok(())
+    })
+}
+
+pub fn get_pages_qty(file_name: &str) -> Result<u16, AnalysisError> {
+    let file_path = format!("books-pdf/{}.pdf", file_name);
+    let code = c_str!(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/python/utils/file_handler.py"
+    )));
+
+    Python::with_gil(|py| {
+        let module = PyModule::from_code(py, code, c_str!("file_handler"), c_str!("file_handler"))
+            .map_err(|e| {
+                AnalysisError::ProcessingError(format!("Error al cargar el módulo Python. {}", e))
+            })?;
+
+        let function = module.getattr("get_pages_qty").map_err(|e| {
+            AnalysisError::ProcessingError(format!(
+                "Error al obtener la función get_pages_qty. {}",
+                e
+            ))
+        })?;
+
+        let result = function.call1((file_path,)).unwrap();
+        let pdf_pages = result.extract().unwrap();
+        Ok(pdf_pages)
+    })
 }

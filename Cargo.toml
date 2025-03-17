@@ -17,4 +17,6 @@ owo-colors = "4.2.0"
 cli-table = "0.4.9"
 jiff = "0.2.1"
 rusty-tesseract = "1.1.10"
+symspell = "0.4.3"
+regex = "1.11.1"
 pyo3 = { version = "0.23.4", features = ["auto-initialize"] }

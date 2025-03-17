@@ -29,7 +29,7 @@ def page_snapshots_by_pdf_division():
         pix = page.get_pixmap(dpi=350)
         pix.save(val)
 
-def page_snapshots_by_pdf_pages(input_pdf):
+def page_snapshots_all_pdf_pages(input_pdf):
     snaps_folder = Path(__file__).resolve().parent / "books-snaps"
     snaps_folder.mkdir(parents=True, exist_ok=True)
     doc = fitz.open(input_pdf)
@@ -39,4 +39,47 @@ def page_snapshots_by_pdf_pages(input_pdf):
         pix = page.get_pixmap(dpi=350)
         pix.save(val)
 
+def page_snapshots_by_pdf_page(input_pdf, page_input):
+    snaps_folder = Path(__file__).resolve().parent / "books-snaps"
+    snaps_folder.mkdir(parents=True, exist_ok=True)
+    doc = fitz.open(input_pdf)
+    page = doc.load_page(page_input - 1)
+    val = snaps_folder / f"snapshot350dpi_page_{page_input}.png"
+    pix = page.get_pixmap(dpi=350)
+    pix.save(val)
+    
+
+def get_pages_qty(input_pdf):
+    doc = fitz.open(input_pdf)
+    doc_pages = len(doc)
+    doc.close()
+    return doc_pages
+    
+def generate_page_snapshot(input_pdf, requested_page=None):
+    try:
+        snaps_folder = Path(__file__).resolve().parent / "books-snaps"
+        snaps_folder.mkdir(parents=True, exist_ok=True)
+        
+        doc = fitz.open(input_pdf)
+        doc_pages = len(doc)
+        
+        # Si no se especifica página o está fuera de rango, devolver error
+        if requested_page is None:
+            doc.close()
+            return {"status": "error", "message": "No page specified", "pages": doc_pages}
+        
+        if requested_page < 0 or requested_page >= doc_pages:
+            doc.close()
+            return {"status": "error", "message": f"Page out of range (0-{doc_pages-1})", "pages": doc_pages}
+        
+        # Generar snapshot
+        page = doc.load_page(requested_page)
+        output_path = snaps_folder / f"snapshot350dpi_page_{requested_page}.png"
+        pix = page.get_pixmap(dpi=350)
+        pix.save(output_path)
+        
+        doc.close()
+        return 
+    except Exception as e:
+        return {"status": "error", "message": str(e), "pages": 0}
   

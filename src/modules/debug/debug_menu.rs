@@ -1,10 +1,13 @@
 use std::{fs, io};
 
+use symspell::{AsciiStringStrategy, SymSpell};
+
 use crate::modules::debug::debug_text_extracts::{
-    read_document_pdf_debug, read_document_txt_debug, read_pdf_tesseract_debug, read_pdf_tet,
+    read_document_pdf_debug, read_document_txt_debug, read_pdf_rapid_ocr_debug,
+    read_pdf_tesseract_debug, read_pdf_tet,
 };
 
-pub fn debug_menu() {
+pub fn debug_menu(symspell: &SymSpell<AsciiStringStrategy>) {
     let mut user_input = String::new();
     let folder_fracts_exists = fs::exists("./books-fracts").unwrap();
     if !folder_fracts_exists {
@@ -28,9 +31,10 @@ pub fn debug_menu() {
             "
 [LEXO CORPUS DEBUG] Menú principal
 1.- Mostrar extracción de texto archivos txt (read_file [OS bytes])
-2.- Mostrar extracción de texto archivos pdf (pdf extract [Rust Crate])
-3.- Mostrar extracción de texto archivos pdf (TET lib [Python Lib])
-4.- Mostrar extracción de texto archivos pdf (Tesseract-ocr (v5) [Program executable])
+2.- Mostrar extracción de texto archivo pdf (pdf extract [Rust Crate])
+3.- Mostrar extracción de texto archivo pdf (TET lib [Python Lib])
+4.- Mostrar extracción de texto archivo pdf (Tesseract-ocr (v5) [Executable])
+5.- Mostrar extracción de texto archivo pdf (Rapid OCR (v2.0.2))
 0.- Salir.
         "
         );
@@ -40,31 +44,39 @@ pub fn debug_menu() {
         if user_input.trim() == "1" {
             let _ = read_document_txt_debug().unwrap();
             println!(
-                "[DEBUG FUNCTION read_document_txt: \nExtract: {}",
-                "Completed!"
+                "[DEBUG FUNCTION read_document_txt: \nEstado: {}",
+                "Completado!"
             );
         }
 
         if user_input.trim() == "2" {
             let _ = read_document_pdf_debug().unwrap();
             println!(
-                "[DEBUG FUNCTION read_document_pdf: \nExtract: {}",
-                "Completed!"
+                "[DEBUG FUNCTION read_document_pdf: \nEstado: {}",
+                "Completado!"
             );
         }
 
         if user_input.trim() == "3" {
             let _ = read_pdf_tet().unwrap();
             println!(
-                "[DEBUG FUNCTION read_tet_document_pdf: \nExtract: {}",
-                "Completed!"
+                "[DEBUG FUNCTION read_tet_document_pdf: \nEstado: {}",
+                "Completado!"
             );
         }
 
         if user_input.trim() == "4" {
             let _ = read_pdf_tesseract_debug().unwrap();
             println!(
-                "[DEBUG FUNCTION read_pdf_tesseract: \nExtract: {}",
+                "[DEBUG FUNCTION read_pdf_tesseract: \nEstado: {}",
+                "Completado!"
+            );
+        }
+
+        if user_input.trim() == "5" {
+            let _ = read_pdf_rapid_ocr_debug(symspell).unwrap();
+            println!(
+                "[DEBUG FUNCTION read_pdf_RapidOCR: \nExtract: {}",
                 "Completed!"
             );
         }

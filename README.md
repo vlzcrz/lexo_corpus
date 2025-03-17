@@ -9,29 +9,45 @@ Cuenta con el analisis automatizado de grandes volumenes de texto presentes en d
 
 Funcionalidades a detalle
 
-- ✅ Obtener el recuento total de palabras presentes en un corpus (texto extraido del documento)
-- ✅ Obtener el recuento de los 50 mas frecuentes palabras presentes en un corpus (texto extraido del documento)
-- ✅ Obtener el recuento de las distancias totales de cada inter-word (palabras especificas de interes) presentes en un corpus (texto extraido del documento)
-- ✅ Elaborar la grafica de la ley de zipf ya sea para cada documento ó dataset
-- ✅ Elaborar la grafica de la ley de heaps ya sea para cada documento ó dataset
-- ✅ Elaborar un heatmap de las inter-word de interes para cada documento ó dataset
+- ✅ Obtención del recuento total de palabras presentes en un corpus (texto extraido del documento)
+- ✅ Obtención del recuento de los 50 mas frecuentes palabras presentes en un corpus (texto extraido del documento)
+- ✅ Obtención del recuento de las distancias totales de cada inter-word (palabras especificas de interes) presentes en un corpus (texto extraido del documento)
+- ✅ Elaboración grafica de la ley de zipf ya sea para cada documento ó dataset
+- ✅ Elaboración grafica de la ley de heaps ya sea para cada documento ó dataset
+- ✅ Elaboración heatmap de las inter-word de interes para cada documento ó dataset
 - ✅ Procesar corpus para diferentes casos presentes en documentos pdf (texto plano, ó mediante extracción de texto en imagenes)
 - ✅ Acceso a la API de la libreria externa
+- ✅ Acceso a la API de Tesseract OCR (Version 5.4.1 con Leptonica-1.82)
+- ✅ Acceso parcial a la API de Rapid OCR (Version 2.0.2) con ONNX Runtime (CPU)
+- ✅ Analisis sintactico con Symspell (mediante Bigramas y Unigramas **lang: EN**)
 
 ## Tecnologías Utilizadas
 
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Python (v3.8+)](https://www.python.org/downloads/)
+- _Requerido_ [Rust](https://www.rust-lang.org/tools/install)
+- _Requerido_ [Python (v3.8+)](https://www.python.org/downloads/)
+- _**Opcional**_ [Tesseract OCR](https://tesseract-ocr.github.io/tessdoc/Installation.html)
+- _Requerido_ [Rapid OCR](https://github.com/RapidAI/RapidOCR)
+- _~~**Opcional**~~ (Eliminado por Memory Leak)_ [Paddle OCR](https://github.com/PaddlePaddle/PaddleOCR)
+- _**Integrado en el proyecto**_ [Symspell](https://github.com/wolfgarbe/SymSpell) mediante [Wrapper para Rust](https://github.com/wolfgarbe/SymSpell)
 
 ## Dependencias Requeridas
 
 Instalar gcc compiler (varia según el sistema operativo, para ubuntu viene empaquetado en build-essential).
-tambien instalar las librerias de desarrollo python-dev para establecer la interacción entre ambos lenguajes (python-rust binding)
+Instalar las librerias de desarrollo python-dev para establecer la interacción entre ambos lenguajes (python-rust binding) y herramientas de OCR
 
 - [UBUNTU]
 
   - sudo apt install build-essential
   - sudo apt install python3-dev
+
+  - _**Opcional**_ [Tesseract OCR]
+    - sudo apt install tesseract-ocr
+    ***
+    #### ⚠️ A tener en cuenta (Tesseract v5)
+    Se requiere primero añadir el PPA al /etc/apt/source.list para que el OS tenga permitido acceder al repositorio. Realizar lo siguiente:
+    - sudo add-apt-repository ppa:alex-p/tesseract-ocr5
+    - sudo apt update
+    ***
 
 ## ⚠️ Nota importante ⚠️
 
@@ -81,22 +97,55 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
    pip install numpy matplotlib seaborn
    ```
 
+   ***
+
+   #### ⚠️ A tener en cuenta (Rapid OCR)
+
+   **Rapid OCR** esta basado en **Paddle OCR** pero utilizando un runtime alternativo **(ONNX Runtime)** y evita memory leaks al identificar los textos de imagenes con resoluciones altas (DPI).
+
+   CPU
+
+   ```bash
+   pip install rapidocr
+   ```
+
+   ```bash
+   pip install rapidocr_onnxruntime
+   ```
+
+   ***
+
+   #### Opcional
+
 4. Copiar y pegar la carpeta completa de la libreria externa TET:
 
-   - Renombra la carpeta a TET-5.6... a 'tetlib'
+   - Renombra la carpeta TET-5.6... a 'tetlib'
    - Traslada la carpeta 'tetlib' adentro de la carpeta 'python' presente en el proyecto
+
+   ***
+
+   #### Finalmente
 
 5. Crea las siguientes carpetas en la raiz del proyecto:
 
    - "books-pdf" (carpeta donde almacenaras los pdf a analizar)
    - "books-txt" (carpeta donde almacenaras los txt a analizar)
-   - "labeled-data" (carpeta donde almacenaras los csv para automatizar el analisis de varios documentos con su año.)
+   - "labeled-data-singular" (carpeta donde se almacenan los csv para automatizar el analisis de varios documentos con su año para un presidente).
      Ej:
 
    ```csv
    document,year
    joe-biden-1.txt,2025
    joe-biden-2.txt,2024
+   ```
+
+   - "labeled-data-multiple" (carpeta donde se almacenan los csv para automatizar el analisis de varios documentos con su año para varios presidentes).
+     Ej:
+
+   ```csv
+   document,year,president
+   joe-biden-1.txt,2025,Donald Trump
+   joe-biden-2.txt,2024,Joe Biden
    ```
 
 6. Iniciar el proyecto (con el venv activado):
@@ -135,7 +184,7 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
 
    ***
 
-   ⚠️ _En caso de error al crear el env debera instalar el siguiente paquete de recursos. (La versión del paquete depende de la versión de ubuntu)_
+   ⚠️ _En caso de error al crear el env deberá instalar el siguiente paquete de recursos. (La versión del paquete depende de la versión de ubuntu)_
 
    ```bash
    sudo apt install python3.10-venv
@@ -157,7 +206,14 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
 
    ```bash
    pip install numpy matplotlib seaborn
+   ```
 
+   ```bash
+   pip install rapidocr
+   ```
+
+   ```bash
+   pip install rapidocr_onnxruntime
    ```
 
 4. Crea las siguientes carpetas en lexo_corpus_dir:
@@ -165,7 +221,7 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
    - "books-pdf" (carpeta donde almacenaras los pdf a analizar)
    - "books-txt" (carpeta donde almacenaras los txt a analizar)
    - "python" (carpeta donde almacenara la libreria externa)
-   - "labeled-data" (carpeta donde almacenaras los csv para automatizar el analisis de varios documentos con su año.)
+   - "labeled-data-singular" (carpeta donde se almacenan los csv para automatizar el analisis de varios documentos con su año para un presidente).
      Ej:
 
    ```csv
@@ -174,10 +230,23 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
    joe-biden-2.txt,2024
    ```
 
+   - "labeled-data-multiple" (carpeta donde se almacenan los csv para automatizar el analisis de varios documentos con su año para varios presidentes).
+     Ej:
+
+   ```csv
+   document,year,president
+   joe-biden-1.txt,2025,Donald Trump
+   joe-biden-2.txt,2024,Joe Biden
+   ```
+
+#### Opcional
+
 5. Copiar y pegar la carpeta completa de la libreria externa TET:
 
    - Renombra la carpeta a TET-5.6... a 'tetlib'
    - Traslada la carpeta 'tetlib' adentro de la carpeta 'python' creada anteriormente
+
+#### Finalmente
 
 6. Iniciar el binario
 
@@ -185,6 +254,20 @@ Caso contrario es libre de utilizar el segundo metodo o el de su preferencia.
    ./lexo_corpus
    ```
 
-## Demostración PROYECTO LEXO CORPUS
+# Demostración PROYECTO LEXO CORPUS
+
+## Procesamiento del corpus
 
 ![](demo.gif)
+
+## Procesamiento Imagen (Rapid OCR)
+
+![](demo_process.png)
+
+![](demo_result_txt.png)
+
+## Pruebas
+
+![](ex1.jpg)
+
+![](ex2.jpg)

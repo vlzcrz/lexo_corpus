@@ -1,7 +1,7 @@
 use std::{
     cmp::min,
     collections::HashMap,
-    fmt::Write,
+    fmt::{self, Write},
     io, thread,
     time::{Duration, Instant},
 };
@@ -9,12 +9,14 @@ use std::{
 use cli_table::{format::Justify, Cell, CellStruct, Style, Table};
 use crossterm::style::Stylize;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
+use regex::Regex;
+use symspell::{AsciiStringStrategy, SymSpell};
 
 use crate::modules::{
     cli_handlers::clear_screen,
     exception_handlers::AnalysisError,
     file_handlers::{
-        document_extract_content, document_extract_content_tesseract_opt, extract_csv_labeled_data, extract_csv_labeled_data_multiple, file_exists, file_exists_silenced, get_files_from_folder, initialize_warehouse_folders
+        document_extract_content, document_extract_content_rapid_ocr_opt, document_extract_content_tesseract_opt, extract_csv_labeled_data, extract_csv_labeled_data_multiple, file_exists, file_exists_silenced, get_files_from_folder, initialize_warehouse_folders
     },
     lexical_analisis::{
         analyzer_content_dataset_opt, copy_interword_to_main, copy_words_to_main,
@@ -33,7 +35,24 @@ use super::{
     zipfs_handlers::{apply_to_log10, get_zipf_law_results},
 };
 
-pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
+pub enum OcrOptions {
+    TETlib,
+    Tesseract,
+    RapidOCR
+}
+
+impl fmt::Display for OcrOptions {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            OcrOptions::TETlib => "TET lib (5.6)",
+            OcrOptions::Tesseract => "Tesseract (v5.4.1)",
+            OcrOptions::RapidOCR => "RapidOCR (v2.0.2)",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+pub fn option_one(ocr_active: &OcrOptions, symspell: &SymSpell<AsciiStringStrategy>) -> Result<(), AnalysisError> {
     let mut file_log = create_log_instance().map_err(|e| {
         AnalysisError::FileSystemOperationError(format!(
             "Error al crear el log del proceso 'Option One': {}",
@@ -62,7 +81,6 @@ pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
         ),
         &mut file_log,
     )?;
-
     
     let mut content = String::new();
     let mut file_name = String::new();
@@ -101,13 +119,15 @@ pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
             continue;
         }
 
-        if tesseract_active {
-            match document_extract_content_tesseract_opt(&file_name, &file_extension) {
+        println!("# Inicio del proceso de extracción y preprocesamiento del texto: {}.{} ...",
+        file_name, file_extension);
+
+        match ocr_active {
+            OcrOptions::Tesseract => match document_extract_content_tesseract_opt(&file_name, &file_extension, symspell) {
                 Ok(extracted_content) => {
                     did_read = true;
-                    content = extracted_content
-                        .to_lowercase()
-                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                    content = extracted_content;
+
                 }
                 Err(e) => {
                     write_log_result(
@@ -120,15 +140,12 @@ pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
                     file_path_input = String::new();
                     continue;
                 }
-            };
-        } else {
-            // Alternativa TET
+            },
+            OcrOptions::TETlib => // Alternativa TET
             match document_extract_content(&file_name, &file_extension) {
                 Ok(extracted_content) => {
                     did_read = true;
-                    content = extracted_content
-                        .to_lowercase()
-                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                    content = extracted_content;
                 }
                 Err(e) => {
                     write_log_result(
@@ -141,10 +158,27 @@ pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
                     file_path_input = String::new();
                     continue;
                 }
-            };
+            },
+            OcrOptions::RapidOCR => match document_extract_content_rapid_ocr_opt(&file_name, &file_extension, symspell) {
+                Ok(extracted_content) => {
+                    did_read = true;
+                    content = extracted_content;
+
+                }
+                Err(e) => {
+                    write_log_result(
+                        format!(
+                            "\n[Error] Error al extraer el contenido del archivo: {}.{} , error: {}.",
+                            file_name, file_extension, e,
+                        ),
+                        &mut file_log,
+                    )?;
+                    file_path_input = String::new();
+                    continue;
+                }
+            },
+
         }
-        
-        
     }
 
     // LOG
@@ -155,6 +189,7 @@ pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
         ),
         &mut file_log,
     )?;
+    
 
     let started = Instant::now();
     //clear_screen();
@@ -167,9 +202,10 @@ pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
     ) = initialize_warehouse_folders(&file_name)?;
 
     println!(
-        "# Inicio del proceso de extracción y analisis del documento: {}.{} ...",
-        file_name, file_extension
-    );
+        "# Inicio del proceso de post procesamiento y analisis del documento...");
+
+    let re = Regex::new(r"[^A-Za-z0-9'\s]").unwrap();
+    content = re.replace_all(&content, "").to_string().to_lowercase();    
 
     let (n_words_total_vec, n_words_unique_vec) = analyzer_content(
         content,
@@ -198,7 +234,7 @@ pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
 
     let (mut keys, mut values) = initializer_word_hashmap_handler(&words)?;
     println!("# Finalizado.");
-    println!("# Inicio de procesamiento del contenido...");
+    println!("# Inicio de procesamiento del contenido extraido...");
 
     get_zipf_law_results(&mut keys, &mut values);
     create_csv_ordered(&keys, &values, &file_name, &folder_warehouse_data);
@@ -277,7 +313,7 @@ pub fn option_one(tesseract_active: bool) -> Result<(), AnalysisError> {
     Ok(())
 }
 
-pub fn option_two(tesseract_active: bool) -> Result<(), AnalysisError> {
+pub fn option_two(ocr_active: &OcrOptions, symspell: &SymSpell<AsciiStringStrategy>) -> Result<(), AnalysisError> {
     let mut input = String::new();
     let mut valid_input = false;
     let mut file_name_dataset = String::new();
@@ -470,10 +506,10 @@ pub fn option_two(tesseract_active: bool) -> Result<(), AnalysisError> {
                 ))
             })?;
 
-        let content: String;
-        if tesseract_active {
-            content = match document_extract_content_tesseract_opt(&file_name, &file_extension) {
-                Ok(content) => {
+        let mut content: String= String::new();
+        match ocr_active {
+            OcrOptions::Tesseract => match document_extract_content_tesseract_opt(&file_name, &file_extension, symspell) {
+                Ok(extracted_content) => {
                     // LOG
                     write_log_result(
                         format!(
@@ -483,9 +519,8 @@ pub fn option_two(tesseract_active: bool) -> Result<(), AnalysisError> {
                         &mut file_log,
                     )?;
                     // ENDLOG
-                    content
-                        .to_lowercase()
-                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                    content = extracted_content;
+
                 }
                 Err(_) => {
                     // LOG
@@ -501,12 +536,11 @@ pub fn option_two(tesseract_active: bool) -> Result<(), AnalysisError> {
                     processed_file_status.push(file.clone().cell());
                     processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
                     processed_file_status_table.push(processed_file_status);
-                    String::new()
+                    
                 }
-            };
-        } else {
-            content = match document_extract_content(&file_name, &file_extension) {
-                Ok(content) => {
+            },
+            OcrOptions::TETlib => match document_extract_content(&file_name, &file_extension) {
+                Ok(extracted_content) => {
                     // LOG
                     write_log_result(
                         format!(
@@ -516,9 +550,8 @@ pub fn option_two(tesseract_active: bool) -> Result<(), AnalysisError> {
                         &mut file_log,
                     )?;
                     // ENDLOG
-                    content
-                        .to_lowercase()
-                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                    content = extracted_content;
+
                 }
                 Err(_) => {
                     // LOG
@@ -534,11 +567,42 @@ pub fn option_two(tesseract_active: bool) -> Result<(), AnalysisError> {
                     processed_file_status.push(file.clone().cell());
                     processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
                     processed_file_status_table.push(processed_file_status);
-                    String::new()
                 }
-            };
+            },
+            OcrOptions::RapidOCR =>  match document_extract_content_rapid_ocr_opt(&file_name, &file_extension, symspell) {
+                Ok(extracted_content) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Completado] Se ha extraido el contenido sin problemas. {}.{} ",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    content = extracted_content;
+
+                }
+                Err(_) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Error] Error en la extracción del contenido. {}.{}",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    let mut processed_file_status: Vec<CellStruct> = Vec::new();
+                    processed_file_status.push(file.clone().cell());
+                    processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+                    processed_file_status_table.push(processed_file_status);
+                }
+            },
         }
-        
+
+        let re = Regex::new(r"[^A-Za-z0-9'\s]").unwrap();
+        content = re.replace_all(&content, "").to_string().to_lowercase();
 
         let (n_words_total_vec, n_words_unique_vec) = analyzer_content_dataset_opt(
             content,
@@ -798,7 +862,7 @@ pub fn option_two(tesseract_active: bool) -> Result<(), AnalysisError> {
     Ok(())
 }
 
-pub fn option_three(tesseract_active: bool) -> Result<(), AnalysisError> {
+pub fn option_three(ocr_active: &OcrOptions, symspell: &SymSpell<AsciiStringStrategy>) -> Result<(), AnalysisError> {
     let mut input = String::new();
     let mut valid_input = false;
     let mut file_name_dataset = String::new();
@@ -989,10 +1053,10 @@ pub fn option_three(tesseract_active: bool) -> Result<(), AnalysisError> {
                 ))
             })?;
 
-        let content: String;
-        if tesseract_active {
-            content = match document_extract_content_tesseract_opt(&file_name, &file_extension) {
-                Ok(content) => {
+        let mut content: String = String::new();
+        match ocr_active {
+            OcrOptions::Tesseract => match document_extract_content_tesseract_opt(&file_name, &file_extension, symspell) {
+                Ok(extracted_content) => {
                     // LOG
                     write_log_result(
                         format!(
@@ -1002,9 +1066,8 @@ pub fn option_three(tesseract_active: bool) -> Result<(), AnalysisError> {
                         &mut file_log,
                     )?;
                     // ENDLOG
-                    content
-                        .to_lowercase()
-                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                    content = extracted_content;
+
                 }
                 Err(_) => {
                     // LOG
@@ -1020,12 +1083,11 @@ pub fn option_three(tesseract_active: bool) -> Result<(), AnalysisError> {
                     processed_file_status.push(file.clone().cell());
                     processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
                     processed_file_status_table.push(processed_file_status);
-                    String::new()
+                    
                 }
-            };
-        } else {
-            content = match document_extract_content(&file_name, &file_extension) {
-                Ok(content) => {
+            },
+            OcrOptions::TETlib => match document_extract_content(&file_name, &file_extension) {
+                Ok(extracted_content) => {
                     // LOG
                     write_log_result(
                         format!(
@@ -1035,9 +1097,8 @@ pub fn option_three(tesseract_active: bool) -> Result<(), AnalysisError> {
                         &mut file_log,
                     )?;
                     // ENDLOG
-                    content
-                        .to_lowercase()
-                        .replace(&[',', '.', '(', ')', '[', ']', '~', '`'][..], "")
+                    content = extracted_content;
+
                 }
                 Err(_) => {
                     // LOG
@@ -1053,11 +1114,42 @@ pub fn option_three(tesseract_active: bool) -> Result<(), AnalysisError> {
                     processed_file_status.push(file.clone().cell());
                     processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
                     processed_file_status_table.push(processed_file_status);
-                    String::new()
+                    
                 }
-            };
+            },
+            OcrOptions::RapidOCR => match document_extract_content_rapid_ocr_opt(&file_name, &file_extension, symspell) {
+                Ok(extracted_content) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Completado] Se ha extraido el contenido sin problemas. {}.{} ",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    content = extracted_content;
+                }
+                Err(_) => {
+                    // LOG
+                    write_log_result(
+                        format!(
+                            "\n[Error] Error en la extracción del contenido. {}.{}",
+                            file_name, file_extension
+                        ),
+                        &mut file_log,
+                    )?;
+                    // ENDLOG
+                    let mut processed_file_status: Vec<CellStruct> = Vec::new();
+                    processed_file_status.push(file.clone().cell());
+                    processed_file_status.push(" Error ".on_red().cell().justify(Justify::Right));
+                    processed_file_status_table.push(processed_file_status);
+                }
+            },
         }
         
+        let re = Regex::new(r"[^A-Za-z0-9'\s]").unwrap();
+        content = re.replace_all(&content, "").to_string().to_lowercase();
 
         let (n_words_total_vec, n_words_unique_vec) = analyzer_content_dataset_opt(
             content,

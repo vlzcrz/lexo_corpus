@@ -5,7 +5,7 @@ use rusty_tesseract::{Args, Image};
 
 use super::{
     exception_handlers::AnalysisError,
-    file_handlers::{clean_folder, get_files_from_folder, page_snapshots_by_pdf_pages},
+    file_handlers::{clean_folder, get_files_from_folder, page_snapshots_all_pdf_pages},
 };
 
 pub fn read_document_pdf_tesseract() -> Result<String, AnalysisError> {
@@ -51,7 +51,7 @@ pub fn read_document_pdf_tesseract() -> Result<String, AnalysisError> {
 
 pub fn read_pdf_tesseract(file_name: &str) -> Result<String, AnalysisError> {
     clean_folder("books-snaps");
-    page_snapshots_by_pdf_pages(file_name).unwrap();
+    page_snapshots_all_pdf_pages(file_name).unwrap();
 
     let content = read_document_pdf_tesseract()?;
 

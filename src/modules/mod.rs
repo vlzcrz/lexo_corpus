@@ -1,3 +1,4 @@
+pub mod alt_ocr_menu;
 pub mod cli_handlers;
 pub mod debug;
 pub mod exception_handlers;
@@ -8,7 +9,8 @@ pub mod linear_regression;
 pub mod log_handlers;
 pub mod menu;
 pub mod merge_sort_utils;
+pub mod paddle_ocr_handlers;
 pub mod plot_handlers;
+pub mod rapid_ocr_handlers;
 pub mod tesseract_handlers;
-pub mod tesseract_menu;
 pub mod zipfs_handlers;

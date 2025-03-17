@@ -1,7 +1,12 @@
 use std::{
     collections::HashMap,
+    fmt::Write,
     io::{self},
 };
+
+use indicatif::{ProgressBar, ProgressState, ProgressStyle};
+use owo_colors::OwoColorize;
+use symspell::{AsciiStringStrategy, SymSpell};
 
 use crate::modules::cli_handlers::clear_screen;
 
@@ -128,6 +133,224 @@ pub fn create_inter_words_differ(
     }
 
     Ok((inter_words_hashmaps, last_positions))
+}
+
+pub fn symspell_processing(
+    content: String,
+    symspell: &SymSpell<AsciiStringStrategy>,
+) -> Result<String, AnalysisError> {
+    let words: Vec<&str> = content.split_whitespace().collect();
+    let mut processed_content = String::new();
+    let last_word_idx = words.len() - 1;
+    // batch dinamico
+    let mut batch_size = 16;
+    let mut batch_idx = 0;
+    println!("Procesamiento sintactico (Symspell)");
+
+    let pb = ProgressBar::new(last_word_idx as u64);
+    pb.set_style(
+        ProgressStyle::with_template(
+            "{spinner:.white} [{elapsed_precise}] [{wide_bar:.white/white}] {percent} ({eta})",
+        )
+        .unwrap()
+        .with_key("eta", |state: &ProgressState, w: &mut dyn Write| {
+            write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap()
+        })
+        .progress_chars("|-"),
+    );
+    while batch_idx < last_word_idx {
+        let mut sentence_from_ocr = String::new();
+        let mut sentence_dummy: String = String::new();
+        for word_idx in batch_idx..(batch_idx + batch_size) {
+            sentence_dummy.push_str(words[word_idx]);
+        }
+
+        if sentence_dummy.len() > 200 {
+            batch_size = 6;
+        }
+
+        let mut sentence: String = "".to_string();
+        let mut sentences: Vec<String> = Vec::new();
+        let mut sentence_restructured = String::new();
+        for word_idx in batch_idx..(batch_idx + batch_size) {
+            sentence_from_ocr.push_str(words[word_idx]);
+            sentence_from_ocr.push_str(" ");
+
+            if !words[word_idx].parse::<i32>().is_err() {
+                if sentence != "" {
+                    sentences.push(sentence.to_string());
+                }
+                sentences.push(words[word_idx].to_string());
+                sentence = "".to_string();
+                continue;
+            }
+            sentence.push_str(words[word_idx]);
+            sentence.push_str(" ");
+
+            if word_idx == batch_idx + batch_size - 1 {
+                sentences.push(sentence.to_string());
+            }
+        }
+
+        //println!("{:?}", sentences);
+
+        for s in sentences.into_iter() {
+            if !s.parse::<i32>().is_err() {
+                sentence_restructured.push_str(&s);
+                sentence_restructured.push_str(" ");
+            } else if s.split_whitespace().count() == 1 {
+                let sym_word = symspell_similarity(&s, symspell)?;
+                sentence_restructured.push_str(&sym_word);
+                sentence_restructured.push_str(" ");
+            } else if s.len() > 10 {
+                let seg_word = symspell_segmentation(&s, symspell)?;
+                sentence_restructured.push_str(&seg_word);
+                sentence_restructured.push_str(" ");
+            } else {
+                let sym_sentence = symspell_compound(&s, symspell)?;
+                sentence_restructured.push_str(&sym_sentence);
+                sentence_restructured.push_str(" ");
+            }
+        }
+        //println!(" {} ", sentence_from_ocr.on_red());
+        //println!(" {} ", sentence_restructured.on_green());
+        processed_content.push_str(&sentence_restructured);
+        processed_content.push_str(" ");
+
+        batch_idx += batch_size;
+        batch_size = 16;
+
+        pb.set_position(batch_idx as u64);
+        // Calculamos de cuanto deberia ser el ultimo batch
+        if (batch_size + batch_idx) > last_word_idx {
+            let overflow = batch_idx + batch_size - last_word_idx;
+            batch_size -= overflow
+        }
+    }
+
+    Ok(processed_content)
+}
+
+pub fn symspell_processing_debug(
+    content: String,
+    symspell: &SymSpell<AsciiStringStrategy>,
+) -> Result<String, AnalysisError> {
+    let words: Vec<&str> = content.split_whitespace().collect();
+    let mut processed_content = String::new();
+    let last_word_idx = words.len() - 1;
+    // batch dinamico
+    let mut batch_size = 16;
+    let mut batch_idx = 0;
+    println!("Procesamiento sintactico (Symspell)");
+
+    while batch_idx < last_word_idx {
+        let mut sentence_from_ocr = String::new();
+        let mut sentence_dummy: String = String::new();
+        for word_idx in batch_idx..(batch_idx + batch_size) {
+            sentence_dummy.push_str(words[word_idx]);
+        }
+
+        if sentence_dummy.len() > 200 {
+            batch_size = 6;
+        }
+
+        let mut sentence: String = "".to_string();
+        let mut sentences: Vec<String> = Vec::new();
+        let mut sentence_restructured = String::new();
+        for word_idx in batch_idx..(batch_idx + batch_size) {
+            sentence_from_ocr.push_str(words[word_idx]);
+            sentence_from_ocr.push_str(" ");
+
+            if !words[word_idx].parse::<i32>().is_err() {
+                if sentence != "" {
+                    sentences.push(sentence.to_string());
+                }
+                sentences.push(words[word_idx].to_string());
+                sentence = "".to_string();
+                continue;
+            }
+            sentence.push_str(words[word_idx]);
+            sentence.push_str(" ");
+
+            if word_idx == batch_idx + batch_size - 1 {
+                sentences.push(sentence.to_string());
+            }
+        }
+
+        println!("{:?}", sentences);
+
+        for s in sentences.into_iter() {
+            if !s.parse::<i32>().is_err() {
+                sentence_restructured.push_str(&s);
+                sentence_restructured.push_str(" ");
+            } else if s.split_whitespace().count() == 1 {
+                let sym_word = symspell_similarity(&s, symspell)?;
+                sentence_restructured.push_str(&sym_word);
+                sentence_restructured.push_str(" ");
+            } else if s.len() > 10 {
+                let seg_word = symspell_segmentation(&s, symspell)?;
+                sentence_restructured.push_str(&seg_word);
+                sentence_restructured.push_str(" ");
+            } else {
+                let sym_sentence = symspell_compound(&s, symspell)?;
+                sentence_restructured.push_str(&sym_sentence);
+                sentence_restructured.push_str(" ");
+            }
+        }
+        println!(" {} ", sentence_from_ocr.on_red());
+        println!(" {} ", sentence_restructured.on_green());
+        processed_content.push_str(&sentence_restructured);
+        processed_content.push_str(" ");
+
+        batch_idx += batch_size;
+        batch_size = 16;
+
+        // Calculamos de cuanto deberia ser el ultimo batch
+        if (batch_size + batch_idx) > last_word_idx {
+            let overflow = batch_idx + batch_size - last_word_idx;
+            batch_size -= overflow
+        }
+    }
+
+    Ok(processed_content)
+}
+
+fn symspell_compound(
+    sentence: &str,
+    symspell: &SymSpell<AsciiStringStrategy>,
+) -> Result<String, AnalysisError> {
+    let mut sentence_restructured = String::new();
+    let sentence_restructured_vec = symspell.lookup_compound(&sentence, 2);
+    for word_restructured in sentence_restructured_vec {
+        //println!("{:?}", word_restructured);
+        let term = word_restructured.term;
+        sentence_restructured.push_str(&term);
+    }
+    Ok(sentence_restructured)
+}
+
+fn symspell_similarity(
+    word: &str,
+    symspell: &SymSpell<AsciiStringStrategy>,
+) -> Result<String, AnalysisError> {
+    let mut word_restructured = String::new();
+    let suggestion_vec = symspell.lookup(word, symspell::Verbosity::Top, 2);
+    for word_suggestion in suggestion_vec {
+        //println!("{:?}", word_suggestion);
+        let term = word_suggestion.term;
+        word_restructured.push_str(&term);
+    }
+    Ok(word_restructured)
+}
+
+fn symspell_segmentation(
+    word: &str,
+    symspell: &SymSpell<AsciiStringStrategy>,
+) -> Result<String, AnalysisError> {
+    let word_restructured: String;
+    let suggestion_word = symspell.word_segmentation(word, 2);
+    word_restructured = suggestion_word.segmented_string;
+    Ok(word_restructured)
 }
 
 /// Analiza el contenido de un texto extraido, iterando entre palabras mediante espacios en blancos y saltos de lineas, verificando que la palabra
